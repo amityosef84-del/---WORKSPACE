@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { runResearchPipeline } from "@/lib/pipeline";
 import type { ResearchRequest } from "@/types/research";
 
-// Vercel Hobby plan max: 60s. Pro plan max: 300s.
-// Upgrade to Pro and raise this to 300 once your plan allows it.
-export const maxDuration = 60;
+// Edge Runtime: streaming responses have no wall-clock timeout as long as
+// bytes keep flowing. CPU-time limit is ~30s but AI calls are pure I/O
+// (network wait on Anthropic API), so they don't consume local CPU.
+// This replaces the old `maxDuration = 60` Serverless cap that killed the
+// connection before the pipeline could finish.
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
   // Validate API key is configured
