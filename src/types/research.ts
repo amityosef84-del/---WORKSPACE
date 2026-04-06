@@ -172,6 +172,7 @@ export type SSEEventType =
   | "step_start"
   | "step_complete"
   | "step_error"
+  | "scrape_warning"
   | "pipeline_complete"
   | "pipeline_error";
 

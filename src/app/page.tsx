@@ -29,6 +29,7 @@ export default function HomePage() {
   const [steps, setSteps] = useState<PipelineStep[]>(INITIAL_STEPS);
   const [report, setReport] = useState<ResearchReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [scrapeWarning, setScrapeWarning] = useState<string | null>(null);
 
   const partialReport = useRef<Partial<ResearchReport>>({});
 
@@ -58,6 +59,9 @@ export default function HomePage() {
             setAppState("complete");
           }
           break;
+        case "scrape_warning":
+          setScrapeWarning("לא הצלחנו לסרוק את האתר, ממשיכים בניתוח על בסיס מידע קיים");
+          break;
         case "pipeline_error":
           setError(event.error ?? "אירעה שגיאה לא ידועה");
           setAppState("error");
@@ -72,6 +76,7 @@ export default function HomePage() {
       setAppState("running");
       setError(null);
       setReport(null);
+      setScrapeWarning(null);
       partialReport.current = {};
       setSteps(INITIAL_STEPS.map((s) => ({ ...s, status: "pending" })));
 
@@ -125,6 +130,7 @@ export default function HomePage() {
     setSteps(INITIAL_STEPS.map((s) => ({ ...s, status: "pending" })));
     setReport(null);
     setError(null);
+    setScrapeWarning(null);
     partialReport.current = {};
   };
 
@@ -247,18 +253,20 @@ export default function HomePage() {
                       <div
                         key={step.id}
                         className={`border rounded-2xl p-5 space-y-2 ${
-                          isActive
+                          isActive && step.id === 0
+                            ? "border-violet-600 bg-violet-950/30"
+                            : isActive
                             ? "border-blue-600 bg-blue-950/30"
                             : "border-emerald-700 bg-emerald-950/20"
                         }`}
                       >
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           {isActive ? (
-                            <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                            <div className={`w-3 h-3 border-2 border-t-transparent rounded-full animate-spin ${step.id === 0 ? "border-violet-400" : "border-blue-400"}`} />
                           ) : (
                             <span className="text-emerald-400">✓</span>
                           )}
-                          <span className={isActive ? "text-blue-300" : "text-emerald-300"}>
+                          <span className={isActive ? (step.id === 0 ? "text-violet-300" : "text-blue-300") : "text-emerald-300"}>
                             שלב {step.id}: {step.nameHe}
                           </span>
                         </div>
@@ -282,6 +290,23 @@ export default function HomePage() {
           )}
         </div>
       </main>
+
+      {/* Scrape warning toast */}
+      {scrapeWarning && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm bg-amber-900/90 border border-amber-600 text-amber-100 rounded-2xl px-5 py-4 shadow-2xl flex items-start gap-3 animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <span className="text-lg mt-0.5">⚠️</span>
+          <div className="flex-1">
+            <p className="text-sm font-semibold leading-snug">{scrapeWarning}</p>
+          </div>
+          <button
+            onClick={() => setScrapeWarning(null)}
+            className="text-amber-400 hover:text-amber-200 text-lg leading-none mt-0.5 shrink-0"
+            aria-label="סגור"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <footer className="border-t border-slate-800 mt-16 py-6 text-center text-xs text-slate-600">
         <p>MarketLens AI · מופעל על ידי Claude Opus 4.6 · כל הניתוחים בעברית</p>

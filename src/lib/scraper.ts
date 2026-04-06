@@ -1,17 +1,20 @@
 /**
  * Web scraper for Step 0 of the research pipeline.
  * Uses Firecrawl if FIRECRAWL_API_KEY is set, otherwise native fetch.
+ *
+ * IMPORTANT: scrapeUrl() NEVER throws. It always returns a ScrapedContent,
+ * possibly with an `error` field set. The pipeline must continue regardless.
  */
 
 import type { ScrapedContent } from "@/types/research";
 
-const FETCH_TIMEOUT_MS = 15_000;
+// Hard wall: abort everything after 30 seconds no matter what
+const SCRAPE_TIMEOUT_MS = 30_000;
 const MAX_TEXT_LENGTH = 8_000;
 
 // ─── Native Fetch Scraper ─────────────────────────────────────────────────────
 
 function extractMeta(html: string, name: string): string | undefined {
-  // Matches <meta name="..." content="..."> and <meta property="..." content="...">
   const re = new RegExp(
     `<meta[^>]+(?:name|property)=["']${name}["'][^>]+content=["']([^"']+)["']`,
     "i",
@@ -36,7 +39,6 @@ function extractHeadings(html: string): string[] {
 }
 
 function stripHtml(html: string): string {
-  // Remove scripts, styles, and tags; collapse whitespace
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -53,26 +55,41 @@ function stripHtml(html: string): string {
 
 async function scrapeWithFetch(url: string): Promise<ScrapedContent> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  // BUG FIX: timer must stay active through res.text(), not just fetch().
+  // We abort the controller, which cancels both the connection AND body reading.
+  const timer = setTimeout(() => {
+    console.log(`[scraper] ⏰ Timeout (${SCRAPE_TIMEOUT_MS}ms) reached — aborting fetch for ${url}`);
+    controller.abort(new Error(`Scrape timed out after ${SCRAPE_TIMEOUT_MS / 1000}s`));
+  }, SCRAPE_TIMEOUT_MS);
 
   try {
+    console.log(`[scraper] 🌐 Starting fetch: ${url}`);
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; MarketLensBot/1.0; +https://marketlens.ai/bot)",
-        Accept: "text/html,application/xhtml+xml",
-        "Accept-Language": "he,en;q=0.9",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "he,en-US;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate",
+        "Cache-Control": "no-cache",
       },
     });
 
-    clearTimeout(timer);
+    console.log(`[scraper] 📥 Headers received — HTTP ${res.status} for ${url}`);
 
     if (!res.ok) {
+      clearTimeout(timer);
       throw new Error(`HTTP ${res.status} ${res.statusText}`);
     }
 
+    // NOTE: timer is still active — AbortController cancels body stream if it hangs
+    console.log(`[scraper] 📖 Reading response body...`);
     const html = await res.text();
+    clearTimeout(timer); // success — cancel the timeout
+
+    console.log(`[scraper] ✅ Body received: ${html.length} chars from ${url}`);
 
     return {
       url,
@@ -88,6 +105,7 @@ async function scrapeWithFetch(url: string): Promise<ScrapedContent> {
   } catch (err) {
     clearTimeout(timer);
     const message = err instanceof Error ? err.message : String(err);
+    console.log(`[scraper] ❌ Fetch failed for ${url}: ${message}`);
     return {
       url,
       mainText: "",
@@ -105,6 +123,7 @@ async function scrapeWithFirecrawl(url: string): Promise<ScrapedContent> {
   const apiKey = process.env.FIRECRAWL_API_KEY!;
 
   try {
+    console.log(`[scraper] 🔥 Starting Firecrawl scrape: ${url}`);
     const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
@@ -116,7 +135,7 @@ async function scrapeWithFirecrawl(url: string): Promise<ScrapedContent> {
         formats: ["markdown"],
         onlyMainContent: true,
       }),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(SCRAPE_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -141,12 +160,13 @@ async function scrapeWithFirecrawl(url: string): Promise<ScrapedContent> {
     }
 
     const { markdown = "", metadata = {} } = json.data;
-    // Extract headings from markdown (## Heading lines)
     const headings = markdown
       .split("\n")
       .filter((l) => /^#{1,3}\s/.test(l))
       .map((l) => l.replace(/^#+\s+/, "").trim())
       .slice(0, 20);
+
+    console.log(`[scraper] ✅ Firecrawl success: ${markdown.length} chars from ${url}`);
 
     return {
       url,
@@ -160,6 +180,7 @@ async function scrapeWithFirecrawl(url: string): Promise<ScrapedContent> {
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    console.log(`[scraper] ❌ Firecrawl failed for ${url}: ${message}`);
     return {
       url,
       mainText: "",
@@ -173,6 +194,9 @@ async function scrapeWithFirecrawl(url: string): Promise<ScrapedContent> {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+/**
+ * Scrape a URL. NEVER throws — returns ScrapedContent with error field on failure.
+ */
 export async function scrapeUrl(url: string): Promise<ScrapedContent> {
   if (process.env.FIRECRAWL_API_KEY) {
     return scrapeWithFirecrawl(url);
@@ -181,11 +205,21 @@ export async function scrapeUrl(url: string): Promise<ScrapedContent> {
 }
 
 /**
+ * Returns true if the scrape produced usable content.
+ */
+export function scrapeSucceeded(scraped: ScrapedContent): boolean {
+  return !scraped.error && scraped.mainText.length > 50;
+}
+
+/**
  * Formats scraped content into a concise text block for AI prompts.
  */
 export function formatScrapedContent(scraped: ScrapedContent): string {
-  if (scraped.error && !scraped.mainText) {
-    return `[שגיאה בסריקת האתר: ${scraped.error}. נא לנתח על סמך כתובת ה-URL בלבד: ${scraped.url}]`;
+  if (!scrapeSucceeded(scraped)) {
+    return [
+      `כתובת האתר: ${scraped.url}`,
+      `[הערה: סריקת האתר נכשלה (${scraped.error ?? "אין תוכן"}). השתמש בידע הפנימי שלך על החברה/המוצר כדי לבצע את הניתוח.]`,
+    ].join("\n\n");
   }
 
   const parts: string[] = [`כתובת האתר: ${scraped.url}`];

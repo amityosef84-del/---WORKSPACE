@@ -62,17 +62,23 @@ export function step1UserPrompt(
   url: string,
   scrapedContent: string,
   additionalDetails?: string,
+  useFallback = false,
 ): string {
+  const sourceNote = useFallback
+    ? `סריקת האתר נכשלה. השתמש בידע הפנימי שלך על החברה/המוצר הקשור ל-URL זה כדי לבצע את הניתוח.`
+    : `הנתונים הבאים נסרקו אוטומטית מהאתר:`;
+
   return `
-נתח לעומק את המתחרה הבא על בסיס תוכן האתר שנסרק:
+נתח לעומק את המתחרה הבא:
 
 **כתובת האתר המנותח:** ${url}
+${additionalDetails ? `\n**פרטים נוספים שסיפק המשתמש:** ${additionalDetails}\n` : ""}
+--- מידע על האתר (שלב 0) ---
+${sourceNote}
 
---- תוכן האתר (Step 0 — נסרק אוטומטית) ---
 ${scrapedContent}
-${additionalDetails ? `\n--- פרטים נוספים שסיפק המשתמש ---\n${additionalDetails}` : ""}
 
-בהתבסס על תוכן האתר לעיל:
+בהתבסס על המידע לעיל${useFallback ? " ועל הידע הפנימי שלך" : ""}:
 1. זהה את זהות המותג, הנרטיב, והמיצוב שלו
 2. נתח את ההצעה העסקית — מוצרים, שירותים, מחירים, ומודל עסקי
 3. הבן את קהל היעד וערוצי השיווק
