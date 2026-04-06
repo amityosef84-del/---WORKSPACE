@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import ResearchForm from "@/components/ResearchForm";
-import PipelineProgress from "@/components/PipelineProgress";
+import ResearchRoadmap from "@/components/ResearchRoadmap";
 import ReportDisplay from "@/components/ReportDisplay";
 import type {
   ResearchReport,
@@ -186,11 +186,34 @@ export default function HomePage() {
             </div>
 
             {appState !== "idle" && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
-                <h3 className="text-sm font-bold text-slate-300 mb-4">
-                  📡 מצב העיבוד
-                </h3>
-                <PipelineProgress steps={steps} />
+              <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-5">
+                <div className="space-y-2">
+                  {steps.map((step) => {
+                    const dotColor =
+                      step.status === "completed" ? "bg-emerald-400"
+                      : step.status === "running"  ? "bg-blue-400 animate-pulse"
+                      : step.status === "error"    ? "bg-red-400"
+                      : "bg-slate-600";
+                    const textColor =
+                      step.status === "completed" ? "text-emerald-300"
+                      : step.status === "running"  ? "text-white"
+                      : step.status === "error"    ? "text-red-400"
+                      : "text-slate-500";
+                    return (
+                      <div key={step.id} className="flex items-center gap-2.5">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                        <span className={`text-xs font-medium ${textColor}`}>
+                          {step.nameHe}
+                        </span>
+                        {step.status === "completed" && (
+                          <svg className="w-3 h-3 text-emerald-500 mr-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -231,58 +254,7 @@ export default function HomePage() {
               )}
 
               {appState === "running" && !report && (
-                <div className="space-y-4">
-                  <div className="bg-slate-800/30 border border-slate-700 rounded-2xl p-8 text-center space-y-3">
-                    <div className="flex justify-center">
-                      <div className="relative w-16 h-16">
-                        <div className="w-16 h-16 border-4 border-blue-800 rounded-full absolute inset-0" />
-                        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin absolute inset-0" />
-                      </div>
-                    </div>
-                    <p className="text-slate-300 font-medium">מנתח את האתר...</p>
-                    <p className="text-sm text-slate-500">
-                      סורק את האתר ומריץ 4 שלבי AI עוקבים — כל שלב מתחיל ברגע שהקודם הסתיים
-                    </p>
-                  </div>
-
-                  {steps.map((step) => {
-                    const isActive = step.status === "running";
-                    const isDone = step.status === "completed";
-                    if (!isActive && !isDone) return null;
-                    return (
-                      <div
-                        key={step.id}
-                        className={`border rounded-2xl p-5 space-y-2 ${
-                          isActive && step.id === 0
-                            ? "border-violet-600 bg-violet-950/30"
-                            : isActive
-                            ? "border-blue-600 bg-blue-950/30"
-                            : "border-emerald-700 bg-emerald-950/20"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 text-sm font-semibold">
-                          {isActive ? (
-                            <div className={`w-3 h-3 border-2 border-t-transparent rounded-full animate-spin ${step.id === 0 ? "border-violet-400" : "border-blue-400"}`} />
-                          ) : (
-                            <span className="text-emerald-400">✓</span>
-                          )}
-                          <span className={isActive ? (step.id === 0 ? "text-violet-300" : "text-blue-300") : "text-emerald-300"}>
-                            שלב {step.id}: {step.nameHe}
-                          </span>
-                        </div>
-                        {isActive && (
-                          <p className="text-xs text-slate-500 pr-5">
-                            {step.id === 0 && "סורק את תוכן האתר, מטא-תגיות וטקסט גלוי..."}
-                            {step.id === 1 && "מזהה שחקנים מרכזיים, מנתח הצעות ערך, ומיפוי קהלי יעד..."}
-                            {step.id === 2 && "מחפש פערים בשוק, צרכים לא נענים, וטרנדים כהזדמנויות..."}
-                            {step.id === 3 && "מזהה איומי AI, חלופות צרכניות, וסיכוני שוק..."}
-                            {step.id === 4 && "מסנתז הכל לתקציר מנהלים עם ERRC ו-SWOT..."}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                <ResearchRoadmap steps={steps} />
               )}
 
               {report && <ReportDisplay report={report} />}
