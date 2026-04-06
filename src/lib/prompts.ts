@@ -184,16 +184,12 @@ ${HEBREW_MANDATE}
 export function step3UserPrompt(
   competitorUrl: string,
   step1Data: string,
-  step2Data: string,
 ): string {
   return `
 אתר המתחרה שנותח: **${competitorUrl}**
 
 --- ניתוח מתחרים מעמיק (שלב 1) ---
 ${step1Data}
-
---- אוקיינוס כחול — הזדמנויות בשוק (שלב 2) ---
-${step2Data}
 
 נתח את הסיכונים הבאים לגבי מודל עסקי בתחום זה:
 1. **שיבוש טכנולוגי** — כיצד AI, אוטומציה, או טכנולוגיות חדשות עלולות להחליף שירותים קיימים?

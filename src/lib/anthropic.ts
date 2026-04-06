@@ -5,21 +5,31 @@ export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export const MODEL = "claude-opus-4-6";
+/** Full reasoning model — best quality, used for Steps 1 & 4 */
+export const MODEL_OPUS = "claude-opus-4-6";
+
+/** Fast, high-quality model — used for parallel intermediate Steps 2 & 3 */
+export const MODEL_SONNET = "claude-sonnet-4-6";
 
 /**
  * Run a single LLM call and return parsed JSON.
  * Uses streaming to avoid HTTP timeouts on long outputs.
- * Adaptive thinking is enabled so the model reasons deeply before answering.
+ *
+ * @param model  Which model to use. Defaults to Opus (slower, deeper reasoning).
+ *               Pass MODEL_SONNET for intermediate steps that run in parallel.
+ * @param useThinking  Enable adaptive thinking. Only use with Opus/Sonnet 4+.
+ *                     Disable for faster intermediate steps.
  */
 export async function runStructuredStep<T>(
   systemPrompt: string,
   userPrompt: string,
+  model: string = MODEL_OPUS,
+  useThinking = true,
 ): Promise<T> {
   const stream = anthropic.messages.stream({
-    model: MODEL,
+    model,
     max_tokens: 8000,
-    thinking: { type: "adaptive" },
+    ...(useThinking ? { thinking: { type: "adaptive" } } : {}),
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
