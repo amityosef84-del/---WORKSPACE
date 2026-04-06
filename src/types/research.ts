@@ -138,12 +138,31 @@ export interface Step4ExecutiveSummary {
   executiveOneLiner: string;
 }
 
+// ─── Step 5: Porter's Five Forces ────────────────────────────────────────────
+
+export interface PorterForce {
+  name: string;         // Hebrew display name
+  analysis: string;     // Short analysis paragraph
+  score: number;        // 1-10 attractiveness (10 = very favorable for market entry)
+  keyFactors: string[]; // 2-3 bullet points
+}
+
+export interface Step5PorterAnalysis {
+  rivalry: PorterForce;
+  newEntrants: PorterForce;
+  supplierPower: PorterForce;
+  buyerPower: PorterForce;
+  substitutes: PorterForce;
+  overallAttractivenessScore: number; // 1-10
+  strategicImplication: string;       // One-paragraph strategic insight
+}
+
 // ─── Pipeline State ───────────────────────────────────────────────────────────
 
 export type StepStatus = "pending" | "running" | "completed" | "error";
 
 export interface PipelineStep {
-  id: 0 | 1 | 2 | 3 | 4;
+  id: 0 | 1 | 2 | 3 | 4 | 5;
   nameEn: string;
   nameHe: string;
   status: StepStatus;
@@ -161,11 +180,12 @@ export interface ResearchReport {
     additionalDetails?: string;
   };
   createdAt: number;
-  steps: [PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep];
+  steps: [PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep];
   step1?: Step1CompetitorAnalysis;
   step2?: Step2BlueOcean;
   step3?: Step3RiskAnalysis;
   step4?: Step4ExecutiveSummary;
+  step5?: Step5PorterAnalysis;
 }
 
 // ─── SSE Event Types ──────────────────────────────────────────────────────────
@@ -180,8 +200,8 @@ export type SSEEventType =
 
 export interface SSEEvent {
   type: SSEEventType;
-  stepId?: 0 | 1 | 2 | 3 | 4;
-  data?: Step1CompetitorAnalysis | Step2BlueOcean | Step3RiskAnalysis | Step4ExecutiveSummary;
+  stepId?: 0 | 1 | 2 | 3 | 4 | 5;
+  data?: Step1CompetitorAnalysis | Step2BlueOcean | Step3RiskAnalysis | Step4ExecutiveSummary | Step5PorterAnalysis;
   error?: string;
   report?: ResearchReport;
   /** true when the step completed via fallback (timeout / AI error) */

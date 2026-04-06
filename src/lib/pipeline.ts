@@ -15,12 +15,12 @@
 import { runStructuredStep, runStepWithFallback, MODEL_OPUS, MODEL_SONNET, MODEL_HAIKU } from "./anthropic";
 import { scrapeUrl, scrapeSucceeded, formatScrapedContent } from "./scraper";
 import {
-  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM,
-  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt,
+  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM, STEP5_SYSTEM,
+  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt, step5UserPrompt,
 } from "./prompts";
 import type {
   ResearchReport,
-  Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis, Step4ExecutiveSummary,
+  Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis, Step4ExecutiveSummary, Step5PorterAnalysis,
   SSEEvent, ResearchRequest,
 } from "@/types/research";
 
@@ -42,6 +42,16 @@ const FALLBACK_STEP3: Step3RiskAnalysis = {
   marketStabilityRisks: [],
   overallRiskLevel: "medium",
   riskSummary: "הניתוח לא הושלם. מומלץ לנסות שנית לקבלת תוצאות מלאות.",
+};
+
+const FALLBACK_STEP5: Step5PorterAnalysis = {
+  rivalry:      { name: "תחרות בין מתחרים קיימים", analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  newEntrants:  { name: "איום של נכנסים חדשים",    analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  supplierPower:{ name: "כוח המיקוח של ספקים",     analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  buyerPower:   { name: "כוח המיקוח של קונים",     analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  substitutes:  { name: "איום של תחליפים",          analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  overallAttractivenessScore: 5,
+  strategicImplication: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
 };
 
 const FALLBACK_STEP4: Step4ExecutiveSummary = {
@@ -85,6 +95,7 @@ export async function runResearchPipeline(
       { id: 2, nameEn: "אוקיינוס כחול (הזדמנויות בשוק)",   nameHe: "אוקיינוס כחול (הזדמנויות בשוק)",   status: "pending" },
       { id: 3, nameEn: "ניתוח סיכונים ואיומים",             nameHe: "ניתוח סיכונים ואיומים",             status: "pending" },
       { id: 4, nameEn: "סיכום מנהלים ותובנות",              nameHe: "סיכום מנהלים ותובנות",              status: "pending" },
+      { id: 5, nameEn: "חמשת הכוחות של פורטר",             nameHe: "חמשת הכוחות של פורטר",             status: "pending" },
     ],
   };
 
@@ -207,6 +218,32 @@ export async function runResearchPipeline(
     if (step4Partial) report.steps[4].partial = true;
     send({ type: "step_complete", stepId: 4, data: step4, partial: step4Partial });
     console.log(`[pipeline] Step 4 — done${step4Partial ? " (partial)" : ""}`);
+
+    // ── Step 5: Porter's Five Forces — Haiku, 90s ────────────────────────────
+    report.steps[5].status = "running";
+    report.steps[5].startedAt = Date.now();
+    send({ type: "step_start", stepId: 5 });
+
+    console.log(`[pipeline] Step 5 — Haiku Porter's Five Forces`);
+
+    const { data: step5, partial: step5Partial } = await runStepWithFallback(
+      () => runStructuredStep<Step5PorterAnalysis>(
+        STEP5_SYSTEM,
+        step5UserPrompt(url, step1Summary, step2Summary, step3Summary),
+        MODEL_HAIKU,
+        false,
+      ),
+      FALLBACK_STEP5,
+      90_000,
+      "Step 5 (Porter's Five Forces)",
+    );
+
+    report.step5 = step5;
+    report.steps[5].status = "completed";
+    report.steps[5].completedAt = Date.now();
+    if (step5Partial) report.steps[5].partial = true;
+    send({ type: "step_complete", stepId: 5, data: step5, partial: step5Partial });
+    console.log(`[pipeline] Step 5 — done${step5Partial ? " (partial)" : ""}`);
 
     console.log(`[pipeline] ✅ Complete for ${url}`);
     send({ type: "pipeline_complete", report });

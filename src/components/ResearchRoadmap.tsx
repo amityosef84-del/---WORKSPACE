@@ -10,7 +10,7 @@ interface MicroTask {
 }
 
 interface StageConfig {
-  id: 0 | 1 | 2 | 3 | 4;
+  id: 0 | 1 | 2 | 3 | 4 | 5;
   title: string;
   subtitle: string;
   icon: string;
@@ -86,6 +86,19 @@ const STAGES: StageConfig[] = [
       { label: "כותב תקציר מנהלים ומשפט-מסכם" },
     ],
   },
+  {
+    id: 5,
+    title: "חמשת הכוחות של פורטר",
+    subtitle: "ניתוח אטרקטיביות השוק",
+    icon: "🏛️",
+    estimatedSeconds: 40,
+    microTasks: [
+      { label: "מנתח עוצמת התחרות הקיימת" },
+      { label: "מעריך איום מנכנסים חדשים" },
+      { label: "בוחן כוח מיקוח ספקים ולקוחות" },
+      { label: "מחשב ציון אטרקטיביות כוללי" },
+    ],
+  },
 ];
 
 // Steps 2+3 run in parallel — effective critical-path time is max, not sum
@@ -93,7 +106,8 @@ const EFFECTIVE_TOTAL_SECONDS =
   STAGES[0].estimatedSeconds +
   STAGES[1].estimatedSeconds +
   Math.max(STAGES[2].estimatedSeconds, STAGES[3].estimatedSeconds) +
-  STAGES[4].estimatedSeconds;
+  STAGES[4].estimatedSeconds +
+  STAGES[5].estimatedSeconds;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

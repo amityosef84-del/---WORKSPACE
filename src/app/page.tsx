@@ -12,6 +12,7 @@ import type {
   Step2BlueOcean,
   Step3RiskAnalysis,
   Step4ExecutiveSummary,
+  Step5PorterAnalysis,
 } from "@/types/research";
 
 const INITIAL_STEPS: PipelineStep[] = [
@@ -20,6 +21,7 @@ const INITIAL_STEPS: PipelineStep[] = [
   { id: 2, nameEn: "אוקיינוס כחול (הזדמנויות בשוק)", nameHe: "אוקיינוס כחול (הזדמנויות בשוק)", status: "pending" },
   { id: 3, nameEn: "ניתוח סיכונים ואיומים",          nameHe: "ניתוח סיכונים ואיומים",          status: "pending" },
   { id: 4, nameEn: "סיכום מנהלים ותובנות",           nameHe: "סיכום מנהלים ותובנות",           status: "pending" },
+  { id: 5, nameEn: "חמשת הכוחות של פורטר",          nameHe: "חמשת הכוחות של פורטר",          status: "pending" },
 ];
 
 type AppState = "idle" | "running" | "complete" | "error";
@@ -33,7 +35,7 @@ export default function HomePage() {
 
   const partialReport = useRef<Partial<ResearchReport>>({});
 
-  const updateStep = useCallback((id: 0 | 1 | 2 | 3 | 4, patch: Partial<PipelineStep>) => {
+  const updateStep = useCallback((id: 0 | 1 | 2 | 3 | 4 | 5, patch: Partial<PipelineStep>) => {
     setSteps((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   }, []);
 
@@ -53,6 +55,7 @@ export default function HomePage() {
           if (event.stepId === 2) partialReport.current.step2 = event.data as Step2BlueOcean;
           if (event.stepId === 3) partialReport.current.step3 = event.data as Step3RiskAnalysis;
           if (event.stepId === 4) partialReport.current.step4 = event.data as Step4ExecutiveSummary;
+          if (event.stepId === 5) partialReport.current.step5 = event.data as Step5PorterAnalysis;
           break;
         case "step_error":
           updateStep(event.stepId!, { status: "error", error: event.error });

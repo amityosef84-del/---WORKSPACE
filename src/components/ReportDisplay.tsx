@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import type { ResearchReport } from "@/types/research";
 
 interface Props {
@@ -524,10 +525,172 @@ function ExecutiveSummarySection({ report }: { report: ResearchReport }) {
   );
 }
 
+// ─── Step 5 Section: Porter's Five Forces ─────────────────────────────────────
+
+function ScoreBar({ score }: { score: number }) {
+  const pct = Math.round((score / 10) * 100);
+  const color =
+    score >= 7 ? "bg-emerald-500" : score >= 4 ? "bg-amber-500" : "bg-red-500";
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-xs font-bold text-slate-300 w-7 text-right tabular-nums">
+        {score}/10
+      </span>
+    </div>
+  );
+}
+
+function PortersSection({ report }: { report: ResearchReport }) {
+  const data = report.step5;
+  if (!data) return null;
+
+  const forces = [
+    { key: "rivalry" as const,       icon: "⚔️",  colorClass: "border-red-900/50" },
+    { key: "newEntrants" as const,    icon: "🚪",  colorClass: "border-amber-900/50" },
+    { key: "supplierPower" as const,  icon: "🏭",  colorClass: "border-purple-900/50" },
+    { key: "buyerPower" as const,     icon: "🛒",  colorClass: "border-blue-900/50" },
+    { key: "substitutes" as const,    icon: "🔄",  colorClass: "border-slate-600" },
+  ];
+
+  const overall = data.overallAttractivenessScore;
+  const overallColor =
+    overall >= 7 ? "text-emerald-400" : overall >= 4 ? "text-amber-400" : "text-red-400";
+
+  return (
+    <SectionCard emoji="🏛️" title="שלב 5: חמשת הכוחות של פורטר">
+      {/* Overall score */}
+      <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-slate-300">ציון אטרקטיביות כולל</span>
+          <span className={`text-2xl font-extrabold tabular-nums ${overallColor}`}>
+            {overall}/10
+          </span>
+        </div>
+        <ScoreBar score={overall} />
+        {data.strategicImplication && (
+          <p className="text-sm text-slate-300 leading-relaxed pt-1">
+            {data.strategicImplication}
+          </p>
+        )}
+      </div>
+
+      {/* Forces grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {forces.map(({ key, icon, colorClass }) => {
+          const force = data[key];
+          return (
+            <div
+              key={key}
+              className={`bg-slate-900 rounded-xl p-4 border ${colorClass} space-y-2`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base leading-none">{icon}</span>
+                <p className="text-sm font-bold text-white leading-snug">{force.name}</p>
+              </div>
+              <ScoreBar score={force.score} />
+              <p className="text-xs text-slate-400 leading-relaxed">{force.analysis}</p>
+              {force.keyFactors.length > 0 && (
+                <ul className="space-y-1 pt-1">
+                  {force.keyFactors.map((f, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-xs text-slate-300">
+                      <span className="text-slate-500 flex-shrink-0 mt-0.5">•</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── PDF Download Button ───────────────────────────────────────────────────────
+
+function DownloadPdfButton({ targetRef, filename }: { targetRef: React.RefObject<HTMLDivElement | null>; filename: string }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async () => {
+    const el = targetRef.current;
+    if (!el) return;
+    setLoading(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        backgroundColor: "#0f172a",
+        useCORS: true,
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+
+      let yOffset = 0;
+      while (yOffset < imgH) {
+        if (yOffset > 0) pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, -yOffset, imgW, imgH);
+        yOffset += pageH;
+      }
+
+      pdf.save(filename);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={loading}
+      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shadow-lg shadow-blue-900/30"
+    >
+      {loading ? (
+        <>
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <span>מייצר PDF...</span>
+        </>
+      ) : (
+        <>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>הורד כ-PDF</span>
+        </>
+      )}
+    </button>
+  );
+}
+
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
 export default function ReportDisplay({ report }: Props) {
   const allComplete = report.steps.every((s) => s.status === "completed");
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const hostname = (() => {
+    try { return new URL(report.query.competitorUrl).hostname.replace(/^www\./, ""); }
+    catch { return "report"; }
+  })();
+  const dateStr = new Date(report.createdAt).toISOString().slice(0, 10);
+  const pdfFilename = `MarketLens-${hostname}-${dateStr}.pdf`;
 
   return (
     <div className="space-y-6">
@@ -545,12 +708,17 @@ export default function ReportDisplay({ report }: Props) {
               <p className="text-sm text-slate-400 mt-1">{report.query.additionalDetails}</p>
             )}
           </div>
-          {allComplete && (
-            <span className="bg-emerald-700 text-emerald-100 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <span>✓</span>
-              הושלם
-            </span>
-          )}
+          <div className="flex items-center gap-3 flex-wrap">
+            {allComplete && (
+              <span className="bg-emerald-700 text-emerald-100 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                <span>✓</span>
+                הושלם
+              </span>
+            )}
+            {allComplete && (
+              <DownloadPdfButton targetRef={reportRef} filename={pdfFilename} />
+            )}
+          </div>
         </div>
         <p className="text-xs text-slate-500 mt-2">
           {new Date(report.createdAt).toLocaleString("he-IL")}
@@ -558,10 +726,13 @@ export default function ReportDisplay({ report }: Props) {
       </div>
 
       {/* Steps in order */}
-      <CompetitorAnalysisSection report={report} />
-      <BlueOceanSection report={report} />
-      <RiskSection report={report} />
-      <ExecutiveSummarySection report={report} />
+      <div ref={reportRef} className="space-y-6">
+        <CompetitorAnalysisSection report={report} />
+        <BlueOceanSection report={report} />
+        <RiskSection report={report} />
+        <ExecutiveSummarySection report={report} />
+        <PortersSection report={report} />
+      </div>
     </div>
   );
 }
