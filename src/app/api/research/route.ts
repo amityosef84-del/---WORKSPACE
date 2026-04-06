@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { runResearchPipeline } from "@/lib/pipeline";
 import type { ResearchRequest } from "@/types/research";
 
-// Allow long-running requests — the pipeline can take several minutes
-export const maxDuration = 300; // 5 minutes
+// Vercel Hobby plan max: 60s. Pro plan max: 300s.
+// Upgrade to Pro and raise this to 300 once your plan allows it.
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   // Validate API key is configured
