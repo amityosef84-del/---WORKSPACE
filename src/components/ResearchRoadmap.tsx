@@ -198,12 +198,20 @@ function StageRow({
 }) {
   const isRunning = step.status === "running";
   const isDone = step.status === "completed";
+  const isPartial = isDone && step.partial;
 
   const elapsedSec = isRunning && step.startedAt
     ? Math.floor((now - step.startedAt) / 1000)
     : 0;
   const remainingSec = Math.max(0, config.estimatedSeconds - elapsedSec);
   const isOverrun = isRunning && elapsedSec > config.estimatedSeconds;
+
+  // Within-step progress fill: 0→85% while running, snaps to 100% on complete
+  const fillPct = isDone
+    ? 100
+    : isRunning
+    ? Math.min(85, Math.round((elapsedSec / config.estimatedSeconds) * 100))
+    : 0;
 
   const tookSec =
     isDone && step.startedAt && step.completedAt
@@ -226,18 +234,26 @@ function StageRow({
 
       {/* Content */}
       <div className={`flex-1 ${isLast ? "pb-0" : "pb-6"}`}>
-        {/* Title + time */}
+        {/* Title row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="text-lg leading-none">{config.icon}</span>
             <div>
-              <p className={`text-sm font-bold leading-snug transition-colors duration-300 ${
-                isDone ? "text-emerald-300" : isRunning ? "text-white" : "text-slate-400"
-              }`}>
-                {config.title}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className={`text-sm font-bold leading-snug transition-colors duration-300 ${
+                  isDone ? (isPartial ? "text-amber-300" : "text-emerald-300") : isRunning ? "text-white" : "text-slate-400"
+                }`}>
+                  {config.title}
+                </p>
+                {/* Partial result badge */}
+                {isPartial && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-amber-900/40 border border-amber-700/60 text-amber-400 px-1.5 py-0.5 rounded-full leading-none">
+                    ⚡ תוצאה חלקית
+                  </span>
+                )}
+              </div>
               <p className={`text-xs transition-colors duration-300 ${
-                isDone ? "text-emerald-700" : isRunning ? "text-slate-400" : "text-slate-600"
+                isDone ? (isPartial ? "text-amber-700" : "text-emerald-700") : isRunning ? "text-slate-400" : "text-slate-600"
               }`}>
                 {config.subtitle}
               </p>
@@ -247,9 +263,7 @@ function StageRow({
           {/* Time badge */}
           <div className="shrink-0 text-left">
             {step.status === "pending" && (
-              <span className="text-xs text-slate-600">
-                ~{formatSeconds(config.estimatedSeconds)}
-              </span>
+              <span className="text-xs text-slate-600">~{formatSeconds(config.estimatedSeconds)}</span>
             )}
             {isRunning && !isOverrun && (
               <span className="text-xs text-blue-400 font-medium tabular-nums">
@@ -257,23 +271,52 @@ function StageRow({
               </span>
             )}
             {isRunning && isOverrun && (
-              <span className="text-xs text-amber-400 font-medium">כמעט שם...</span>
+              <span className="text-xs text-amber-400 font-medium tabular-nums animate-pulse">
+                כמעט שם...
+              </span>
             )}
             {isDone && tookSec !== null && (
-              <span className="text-xs text-emerald-600 tabular-nums">✓ {tookSec} שנ׳</span>
+              <span className={`text-xs tabular-nums ${isPartial ? "text-amber-600" : "text-emerald-600"}`}>
+                {isPartial ? "⚡" : "✓"} {tookSec} שנ׳
+              </span>
             )}
           </div>
         </div>
 
+        {/* Within-step progress fill bar */}
+        {(isRunning || isDone) && (
+          <div className="mt-1.5 pr-8">
+            <div className="h-0.5 bg-slate-700/50 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ease-linear ${
+                  isDone
+                    ? isPartial
+                      ? "bg-amber-500/50 duration-300"
+                      : "bg-emerald-500/50 duration-300"
+                    : "bg-blue-500/40 duration-1000"
+                }`}
+                style={{ width: `${fillPct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Overrun message */}
         {isRunning && isOverrun && (
-          <p className="text-xs text-amber-500/80 mt-1 pr-8">
+          <p className="text-xs text-amber-500/80 mt-1.5 pr-8">
             מעבד נתונים מורכבים, כמעט שם...
           </p>
         )}
 
+        {/* Partial fallback notice */}
+        {isPartial && (
+          <p className="text-xs text-amber-600/70 mt-1 pr-8">
+            הצגת תוצאה חלקית — הניתוח הושלם עם מידע מוגבל
+          </p>
+        )}
+
         {/* Micro-tasks — only while running or completed */}
-        {(isRunning || isDone) && (
+        {(isRunning || isDone) && !isPartial && (
           <div className="pr-8">
             <MicroTaskList
               tasks={config.microTasks}

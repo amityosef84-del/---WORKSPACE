@@ -93,33 +93,27 @@ ${scrapedContent}
 // ─── Step 2: אוקיינוס כחול (הזדמנויות בשוק) ─────────────────────────────────
 
 export const STEP2_SYSTEM = `
-אתה מומחה לאסטרטגיית "האוקיינוס הכחול" (Blue Ocean Strategy) ולזיהוי הזדמנויות שוק.
+אתה מומחה לאסטרטגיית "האוקיינוס הכחול" ולזיהוי הזדמנויות שוק.
 בהתבסס על ניתוח המתחרים שסופק לך, מצא פערים והזדמנויות בלתי מנוצלות.
+היה תמציתי — החזר בדיוק 2-3 פריטים בכל מערך, לא יותר.
 
 ${HEBREW_MANDATE}
 
-החזר אך ורק JSON תקין ללא תגיות markdown, בפורמט הבא:
+החזר אך ורק JSON תקין ללא תגיות markdown:
 {
   "analysis": {
     "unmetNeeds": [
-      {
-        "description": "תיאור הצורך הלא נענה",
-        "evidenceSources": ["ביקורות לקוחות", "פורומים מקצועיים"],
-        "intensityScore": 8
-      }
+      { "description": "תיאור קצר", "evidenceSources": ["מקור 1"], "intensityScore": 8 },
+      { "description": "תיאור קצר", "evidenceSources": ["מקור 1"], "intensityScore": 7 }
     ],
     "trendOpportunities": [
-      {
-        "trendName": "שם הטרנד",
-        "type": "social|economic|technological|regulatory",
-        "description": "תיאור הטרנד והשפעתו",
-        "howToLeverage": "כיצד לנצל את ההזדמנות"
-      }
+      { "trendName": "שם", "type": "technological", "description": "תיאור קצר", "howToLeverage": "כיצד לנצל" },
+      { "trendName": "שם", "type": "social", "description": "תיאור קצר", "howToLeverage": "כיצד לנצל" }
     ],
-    "whitespaceInsights": "תובנות לגבי הרווחים הלא-מנוצלים בשוק",
+    "whitespaceInsights": "פסקה אחת קצרה על רווחים לבנים",
     "opportunityScore": 7
   },
-  "topOpportunity": "הזדמנות מרכזית אחת — משפט אחד קצר וממוקד"
+  "topOpportunity": "משפט אחד קצר"
 }
 `.trim();
 
@@ -143,41 +137,26 @@ ${step1Data}
 
 export const STEP3_SYSTEM = `
 אתה אנליסט סיכונים עסקי המתמחה בזיהוי איומים על מודלים עסקיים.
-תפקידך לנתח את הסיכונים והאיומים הפוטנציאליים על המודל העסקי בתחום הנתון.
+היה תמציתי — החזר בדיוק 2 פריטים בכל קטגוריה, לא יותר.
 
 ${HEBREW_MANDATE}
 
-החזר אך ורק JSON תקין ללא תגיות markdown, בפורמט הבא:
+החזר אך ורק JSON תקין ללא תגיות markdown:
 {
   "technologicalDisruptions": [
-    {
-      "title": "כותרת האיום",
-      "description": "תיאור מפורט",
-      "severity": "low|medium|high|critical",
-      "timeframe": "immediate|short-term|long-term",
-      "mitigationStrategy": "אסטרטגיית מיתון מפורטת"
-    }
+    { "title": "שם האיום", "description": "תיאור קצר", "severity": "high", "timeframe": "short-term", "mitigationStrategy": "אסטרטגיה קצרה" },
+    { "title": "שם האיום", "description": "תיאור קצר", "severity": "medium", "timeframe": "long-term", "mitigationStrategy": "אסטרטגיה קצרה" }
   ],
   "consumerAlternatives": [
-    {
-      "title": "כותרת החלופה",
-      "description": "תיאור מפורט",
-      "severity": "low|medium|high|critical",
-      "timeframe": "immediate|short-term|long-term",
-      "mitigationStrategy": "אסטרטגיית מיתון מפורטת"
-    }
+    { "title": "שם החלופה", "description": "תיאור קצר", "severity": "high", "timeframe": "immediate", "mitigationStrategy": "אסטרטגיה קצרה" },
+    { "title": "שם החלופה", "description": "תיאור קצר", "severity": "medium", "timeframe": "short-term", "mitigationStrategy": "אסטרטגיה קצרה" }
   ],
   "marketStabilityRisks": [
-    {
-      "title": "כותרת הסיכון",
-      "description": "תיאור מפורט",
-      "severity": "low|medium|high|critical",
-      "timeframe": "immediate|short-term|long-term",
-      "mitigationStrategy": "אסטרטגיית מיתון מפורטת"
-    }
+    { "title": "שם הסיכון", "description": "תיאור קצר", "severity": "medium", "timeframe": "long-term", "mitigationStrategy": "אסטרטגיה קצרה" },
+    { "title": "שם הסיכון", "description": "תיאור קצר", "severity": "low", "timeframe": "long-term", "mitigationStrategy": "אסטרטגיה קצרה" }
   ],
-  "overallRiskLevel": "low|medium|high|critical",
-  "riskSummary": "סיכום סיכונים כללי בפסקה"
+  "overallRiskLevel": "medium",
+  "riskSummary": "פסקה אחת קצרה"
 }
 `.trim();
 
@@ -203,53 +182,43 @@ ${step1Data}
 // ─── Step 4: סיכום מנהלים ותובנות ────────────────────────────────────────────
 
 export const STEP4_SYSTEM = `
-אתה מנהל אסטרטגיה בכיר המכין תקצירי מנהלים מקיפים ופעילים.
-בהתבסס על כל המחקר שנאסף, צור סיכום מנהלים מעמיק.
+אתה מנהל אסטרטגיה בכיר המכין תקצירי מנהלים.
+היה תמציתי — 2-3 פריטים בכל מערך, לא יותר.
 
 ${HEBREW_MANDATE}
 
-החזר אך ורק JSON תקין ללא תגיות markdown, בפורמט הבא:
+החזר אך ורק JSON תקין ללא תגיות markdown:
 {
   "audienceMap": [
-    {
-      "name": "שם הסגמנט",
-      "size": "גדול|בינוני|נישה",
-      "burningPainPoints": ["נקודת כאב 1", "נקודת כאב 2"],
-      "willingnessToPay": "low|medium|high"
-    }
+    { "name": "סגמנט א", "size": "גדול", "burningPainPoints": ["כאב 1", "כאב 2"], "willingnessToPay": "high" },
+    { "name": "סגמנט ב", "size": "בינוני", "burningPainPoints": ["כאב 1"], "willingnessToPay": "medium" }
   ],
   "competitorSquad": {
     "titans": [
-      {
-        "name": "שם המתחרה הוותיק",
-        "strength": "החוזק המרכזי שלהם",
-        "weakness": "החולשה המרכזית שלהם"
-      }
+      { "name": "שם", "strength": "חוזק", "weakness": "חולשה" },
+      { "name": "שם", "strength": "חוזק", "weakness": "חולשה" }
     ],
     "upAndComers": [
-      {
-        "name": "שם המתחרה הצומח",
-        "growthDriver": "מה מניע את הצמיחה שלהם",
-        "threat": "האיום שהם מייצגים"
-      }
+      { "name": "שם", "growthDriver": "מניע", "threat": "איום" },
+      { "name": "שם", "growthDriver": "מניע", "threat": "איום" }
     ]
   },
   "blueOceanERRC": {
-    "eliminate": ["מה להסיר לחלוטין מהענף"],
-    "reduce": ["מה להפחית מתחת לתקן הענף"],
-    "raise": ["מה להעלות מעל לתקן הענף"],
-    "create": ["מה ליצור שהענף מעולם לא הציע"],
-    "blueOceanStatement": "הגדרת ההזדמנות הייחודית ב-2 משפטים תוך שימוש ב-ERRC"
+    "eliminate": ["פריט 1", "פריט 2"],
+    "reduce": ["פריט 1", "פריט 2"],
+    "raise": ["פריט 1", "פריט 2"],
+    "create": ["פריט 1", "פריט 2"],
+    "blueOceanStatement": "2 משפטים"
   },
   "swotMatrix": {
     "strengths": ["חוזקה 1", "חוזקה 2"],
     "weaknesses": ["חולשה 1", "חולשה 2"],
     "opportunities": ["הזדמנות 1", "הזדמנות 2"],
     "threats": ["איום 1", "איום 2"],
-    "actNow": ["פעולה מיידית 1", "פעולה מיידית 2"],
-    "avoid": ["להימנע מ-1", "להימנע מ-2"]
+    "actNow": ["פעולה 1", "פעולה 2"],
+    "avoid": ["הימנע מ-1", "הימנע מ-2"]
   },
-  "executiveOneLiner": "משפט אחד חד וממוקד המתמצת את ההזדמנות העסקית"
+  "executiveOneLiner": "משפט אחד"
 }
 `.trim();
 

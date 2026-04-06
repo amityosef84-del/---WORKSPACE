@@ -150,6 +150,8 @@ export interface PipelineStep {
   startedAt?: number;
   completedAt?: number;
   error?: string;
+  /** true when the step completed via timeout/error fallback rather than real AI output */
+  partial?: boolean;
 }
 
 export interface ResearchReport {
@@ -182,6 +184,8 @@ export interface SSEEvent {
   data?: Step1CompetitorAnalysis | Step2BlueOcean | Step3RiskAnalysis | Step4ExecutiveSummary;
   error?: string;
   report?: ResearchReport;
+  /** true when the step completed via fallback (timeout / AI error) */
+  partial?: boolean;
 }
 
 // ─── API Request/Response ─────────────────────────────────────────────────────

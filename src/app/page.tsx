@@ -44,7 +44,11 @@ export default function HomePage() {
           updateStep(event.stepId!, { status: "running", startedAt: Date.now() });
           break;
         case "step_complete":
-          updateStep(event.stepId!, { status: "completed", completedAt: Date.now() });
+          updateStep(event.stepId!, {
+            status: "completed",
+            completedAt: Date.now(),
+            partial: event.partial ?? false,
+          });
           if (event.stepId === 1) partialReport.current.step1 = event.data as Step1CompetitorAnalysis;
           if (event.stepId === 2) partialReport.current.step2 = event.data as Step2BlueOcean;
           if (event.stepId === 3) partialReport.current.step3 = event.data as Step3RiskAnalysis;
