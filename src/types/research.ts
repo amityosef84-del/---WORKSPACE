@@ -1,3 +1,17 @@
+// ─── Step 0: Web Scraping ─────────────────────────────────────────────────────
+
+export interface ScrapedContent {
+  url: string;
+  title?: string;
+  description?: string;
+  keywords?: string;
+  mainText: string;
+  headings: string[];
+  scrapedAt: number;
+  method: "fetch" | "firecrawl";
+  error?: string;
+}
+
 // ─── Step 1: Competitor Analysis ─────────────────────────────────────────────
 
 export interface CompetitorProfile {
@@ -129,7 +143,7 @@ export interface Step4ExecutiveSummary {
 export type StepStatus = "pending" | "running" | "completed" | "error";
 
 export interface PipelineStep {
-  id: 1 | 2 | 3 | 4;
+  id: 0 | 1 | 2 | 3 | 4;
   nameEn: string;
   nameHe: string;
   status: StepStatus;
@@ -141,11 +155,11 @@ export interface PipelineStep {
 export interface ResearchReport {
   id: string;
   query: {
-    marketOrCompetitor: string;
-    additionalContext?: string;
+    competitorUrl: string;
+    additionalDetails?: string;
   };
   createdAt: number;
-  steps: [PipelineStep, PipelineStep, PipelineStep, PipelineStep];
+  steps: [PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep];
   step1?: Step1CompetitorAnalysis;
   step2?: Step2BlueOcean;
   step3?: Step3RiskAnalysis;
@@ -163,7 +177,7 @@ export type SSEEventType =
 
 export interface SSEEvent {
   type: SSEEventType;
-  stepId?: 1 | 2 | 3 | 4;
+  stepId?: 0 | 1 | 2 | 3 | 4;
   data?: Step1CompetitorAnalysis | Step2BlueOcean | Step3RiskAnalysis | Step4ExecutiveSummary;
   error?: string;
   report?: ResearchReport;
@@ -172,6 +186,6 @@ export interface SSEEvent {
 // ─── API Request/Response ─────────────────────────────────────────────────────
 
 export interface ResearchRequest {
-  marketOrCompetitor: string;
-  additionalContext?: string;
+  competitorUrl: string;
+  additionalDetails?: string;
 }

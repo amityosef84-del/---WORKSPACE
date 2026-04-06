@@ -538,11 +538,11 @@ export default function ReportDisplay({ report }: Props) {
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">
               דוח מחקר שוק
             </p>
-            <h1 className="text-xl font-bold text-white">
-              {report.query.marketOrCompetitor}
+            <h1 className="text-xl font-bold text-white font-mono" dir="ltr">
+              {report.query.competitorUrl}
             </h1>
-            {report.query.additionalContext && (
-              <p className="text-sm text-slate-400 mt-1">{report.query.additionalContext}</p>
+            {report.query.additionalDetails && (
+              <p className="text-sm text-slate-400 mt-1">{report.query.additionalDetails}</p>
             )}
           </div>
           {allComplete && (

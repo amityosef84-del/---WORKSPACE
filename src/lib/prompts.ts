@@ -58,13 +58,28 @@ ${HEBREW_MANDATE}
 }
 `.trim();
 
-export function step1UserPrompt(market: string, context?: string): string {
+export function step1UserPrompt(
+  url: string,
+  scrapedContent: string,
+  additionalDetails?: string,
+): string {
   return `
-נתח לעומק את המתחרים בתחום: **${market}**
-${context ? `\nהקשר נוסף: ${context}` : ""}
+נתח לעומק את המתחרה הבא על בסיס תוכן האתר שנסרק:
 
-זהה לפחות 3-5 שחקנים מרכזיים בשוק זה וספק ניתוח מפורט של כל אחד בהתאם לסכמה המבוקשת.
-כלול גם מתחרים עקיפים — פתרונות חלופיים שהלקוחות עלולים לבחור במקומם.
+**כתובת האתר המנותח:** ${url}
+
+--- תוכן האתר (Step 0 — נסרק אוטומטית) ---
+${scrapedContent}
+${additionalDetails ? `\n--- פרטים נוספים שסיפק המשתמש ---\n${additionalDetails}` : ""}
+
+בהתבסס על תוכן האתר לעיל:
+1. זהה את זהות המותג, הנרטיב, והמיצוב שלו
+2. נתח את ההצעה העסקית — מוצרים, שירותים, מחירים, ומודל עסקי
+3. הבן את קהל היעד וערוצי השיווק
+4. זהה לפחות 2-3 מתחרים עקיפים — פתרונות חלופיים שהלקוחות עלולים לבחור
+5. ספק סקירת שוק כללית בתחום הפעילות של המתחרה
+
+המתחרה הראשי שיש לנתח הוא האתר שנסרק. הצג אותו כ-competitors[0].
 כל הפלט יהיה בעברית בלבד.
   `.trim();
 }
@@ -102,9 +117,9 @@ ${HEBREW_MANDATE}
 }
 `.trim();
 
-export function step2UserPrompt(market: string, step1Data: string): string {
+export function step2UserPrompt(competitorUrl: string, step1Data: string): string {
   return `
-תחום השוק: **${market}**
+אתר המתחרה שנותח: **${competitorUrl}**
 
 --- ניתוח מתחרים מעמיק (שלב 1) ---
 ${step1Data}
@@ -161,12 +176,12 @@ ${HEBREW_MANDATE}
 `.trim();
 
 export function step3UserPrompt(
-  market: string,
+  competitorUrl: string,
   step1Data: string,
   step2Data: string,
 ): string {
   return `
-תחום השוק: **${market}**
+אתר המתחרה שנותח: **${competitorUrl}**
 
 --- ניתוח מתחרים מעמיק (שלב 1) ---
 ${step1Data}
@@ -237,13 +252,13 @@ ${HEBREW_MANDATE}
 `.trim();
 
 export function step4UserPrompt(
-  market: string,
+  competitorUrl: string,
   step1Data: string,
   step2Data: string,
   step3Data: string,
 ): string {
   return `
-תחום השוק: **${market}**
+אתר המתחרה שנותח: **${competitorUrl}**
 
 --- ניתוח מתחרים מעמיק (שלב 1) ---
 ${step1Data}

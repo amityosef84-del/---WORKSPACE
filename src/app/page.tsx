@@ -15,10 +15,11 @@ import type {
 } from "@/types/research";
 
 const INITIAL_STEPS: PipelineStep[] = [
-  { id: 1, nameEn: "ניתוח מתחרים מעמיק",          nameHe: "ניתוח מתחרים מעמיק",          status: "pending" },
+  { id: 0, nameEn: "סריקת אתר המתחרה",             nameHe: "סריקת אתר המתחרה",             status: "pending" },
+  { id: 1, nameEn: "ניתוח מתחרים מעמיק",            nameHe: "ניתוח מתחרים מעמיק",            status: "pending" },
   { id: 2, nameEn: "אוקיינוס כחול (הזדמנויות בשוק)", nameHe: "אוקיינוס כחול (הזדמנויות בשוק)", status: "pending" },
-  { id: 3, nameEn: "ניתוח סיכונים ואיומים",        nameHe: "ניתוח סיכונים ואיומים",        status: "pending" },
-  { id: 4, nameEn: "סיכום מנהלים ותובנות",         nameHe: "סיכום מנהלים ותובנות",         status: "pending" },
+  { id: 3, nameEn: "ניתוח סיכונים ואיומים",          nameHe: "ניתוח סיכונים ואיומים",          status: "pending" },
+  { id: 4, nameEn: "סיכום מנהלים ותובנות",           nameHe: "סיכום מנהלים ותובנות",           status: "pending" },
 ];
 
 type AppState = "idle" | "running" | "complete" | "error";
@@ -31,7 +32,7 @@ export default function HomePage() {
 
   const partialReport = useRef<Partial<ResearchReport>>({});
 
-  const updateStep = useCallback((id: 1 | 2 | 3 | 4, patch: Partial<PipelineStep>) => {
+  const updateStep = useCallback((id: 0 | 1 | 2 | 3 | 4, patch: Partial<PipelineStep>) => {
     setSteps((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   }, []);
 
@@ -67,7 +68,7 @@ export default function HomePage() {
   );
 
   const handleSubmit = useCallback(
-    async (market: string, context?: string) => {
+    async (url: string, details?: string) => {
       setAppState("running");
       setError(null);
       setReport(null);
@@ -78,7 +79,7 @@ export default function HomePage() {
         const res = await fetch("/api/research", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ marketOrCompetitor: market, additionalContext: context }),
+          body: JSON.stringify({ competitorUrl: url, additionalDetails: details }),
         });
 
         if (!res.ok) {
@@ -159,14 +160,14 @@ export default function HomePage() {
         {appState === "idle" && (
           <div className="text-center space-y-3 py-6">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
-              מחקר מתחרים ושוק{" "}
+              נתח כל מתחרה{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-                מעמיק ואוטומטי
+                רק עם ה-URL שלו
               </span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
-              מערכת AI שמנתחת את השוק שלך ב-4 שלבים עוקבים — ניתוח מתחרים, זיהוי הזדמנויות,
-              ניתוח סיכונים, ותקציר מנהלים — כאשר כל שלב מתבסס על הקודם.
+              הדבק קישור לאתר המתחרה — המערכת סורקת אותו אוטומטית ומריצה 4 שלבי AI עוקבים:
+              ניתוח מתחרים, זיהוי הזדמנויות, ניתוח סיכונים, ותקציר מנהלים.
             </p>
           </div>
         )}
@@ -197,7 +198,9 @@ export default function HomePage() {
                     key={step.id}
                     className="flex items-center gap-3 text-sm text-slate-400 bg-slate-800/30 rounded-xl px-4 py-3 border border-slate-800"
                   >
-                    <span className="font-bold text-slate-500 tabular-nums">{step.id}</span>
+                    <span className="font-bold text-slate-500 tabular-nums w-4 text-center">
+                      {step.id}
+                    </span>
                     <span className="text-slate-300">{step.nameHe}</span>
                   </div>
                 ))}
@@ -230,9 +233,9 @@ export default function HomePage() {
                         <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin absolute inset-0" />
                       </div>
                     </div>
-                    <p className="text-slate-300 font-medium">מנתח את השוק...</p>
+                    <p className="text-slate-300 font-medium">מנתח את האתר...</p>
                     <p className="text-sm text-slate-500">
-                      ה-AI עובד בשלבים עוקבים — כל שלב מתחיל ברגע שהקודם הסתיים
+                      סורק את האתר ומריץ 4 שלבי AI עוקבים — כל שלב מתחיל ברגע שהקודם הסתיים
                     </p>
                   </div>
 
@@ -261,6 +264,7 @@ export default function HomePage() {
                         </div>
                         {isActive && (
                           <p className="text-xs text-slate-500 pr-5">
+                            {step.id === 0 && "סורק את תוכן האתר, מטא-תגיות וטקסט גלוי..."}
                             {step.id === 1 && "מזהה שחקנים מרכזיים, מנתח הצעות ערך, ומיפוי קהלי יעד..."}
                             {step.id === 2 && "מחפש פערים בשוק, צרכים לא נענים, וטרנדים כהזדמנויות..."}
                             {step.id === 3 && "מזהה איומי AI, חלופות צרכניות, וסיכוני שוק..."}

@@ -22,9 +22,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!body.marketOrCompetitor?.trim()) {
+  const rawUrl = body.competitorUrl?.trim();
+  if (!rawUrl) {
     return NextResponse.json(
-      { error: "marketOrCompetitor is required" },
+      { error: "competitorUrl is required" },
+      { status: 400 },
+    );
+  }
+
+  // Auto-prepend https:// if missing scheme
+  const competitorUrl =
+    rawUrl.startsWith("http://") || rawUrl.startsWith("https://")
+      ? rawUrl
+      : `https://${rawUrl}`;
+
+  // Validate it's actually a URL
+  try {
+    new URL(competitorUrl);
+  } catch {
+    return NextResponse.json(
+      { error: "competitorUrl must be a valid URL" },
       { status: 400 },
     );
   }
@@ -34,8 +51,8 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       await runResearchPipeline(
         {
-          marketOrCompetitor: body.marketOrCompetitor.trim(),
-          additionalContext: body.additionalContext?.trim(),
+          competitorUrl,
+          additionalDetails: body.additionalDetails?.trim(),
         },
         controller,
       );
