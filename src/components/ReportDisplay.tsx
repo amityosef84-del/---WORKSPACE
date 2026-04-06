@@ -530,7 +530,7 @@ export default function ReportDisplay({ report }: Props) {
   const allComplete = report.steps.every((s) => s.status === "completed");
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6">
       {/* Report header */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-2xl p-5">
         <div className="flex items-start justify-between flex-wrap gap-3">

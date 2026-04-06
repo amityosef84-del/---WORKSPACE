@@ -48,10 +48,10 @@ export async function runResearchPipeline(
     query: request,
     createdAt: Date.now(),
     steps: [
-      { id: 1, nameEn: "Competitor Analysis", nameHe: "ניתוח מתחרים", status: "pending" },
-      { id: 2, nameEn: "Blue Ocean Identification", nameHe: "זיהוי האוקיינוס הכחול", status: "pending" },
-      { id: 3, nameEn: "Risk & Threat Analysis", nameHe: "ניתוח סיכונים ואיומים", status: "pending" },
-      { id: 4, nameEn: "Executive Summary", nameHe: "תקציר מנהלים", status: "pending" },
+      { id: 1, nameEn: "ניתוח מתחרים מעמיק",          nameHe: "ניתוח מתחרים מעמיק",          status: "pending" },
+      { id: 2, nameEn: "אוקיינוס כחול (הזדמנויות בשוק)", nameHe: "אוקיינוס כחול (הזדמנויות בשוק)", status: "pending" },
+      { id: 3, nameEn: "ניתוח סיכונים ואיומים",        nameHe: "ניתוח סיכונים ואיומים",        status: "pending" },
+      { id: 4, nameEn: "סיכום מנהלים ותובנות",         nameHe: "סיכום מנהלים ותובנות",         status: "pending" },
     ],
   };
 

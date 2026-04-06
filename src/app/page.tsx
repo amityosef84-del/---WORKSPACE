@@ -15,10 +15,10 @@ import type {
 } from "@/types/research";
 
 const INITIAL_STEPS: PipelineStep[] = [
-  { id: 1, nameEn: "Competitor Analysis", nameHe: "ניתוח מתחרים", status: "pending" },
-  { id: 2, nameEn: "Blue Ocean Identification", nameHe: "זיהוי האוקיינוס הכחול", status: "pending" },
-  { id: 3, nameEn: "Risk & Threat Analysis", nameHe: "ניתוח סיכונים ואיומים", status: "pending" },
-  { id: 4, nameEn: "Executive Summary", nameHe: "תקציר מנהלים", status: "pending" },
+  { id: 1, nameEn: "ניתוח מתחרים מעמיק",          nameHe: "ניתוח מתחרים מעמיק",          status: "pending" },
+  { id: 2, nameEn: "אוקיינוס כחול (הזדמנויות בשוק)", nameHe: "אוקיינוס כחול (הזדמנויות בשוק)", status: "pending" },
+  { id: 3, nameEn: "ניתוח סיכונים ואיומים",        nameHe: "ניתוח סיכונים ואיומים",        status: "pending" },
+  { id: 4, nameEn: "סיכום מנהלים ותובנות",         nameHe: "סיכום מנהלים ותובנות",         status: "pending" },
 ];
 
 type AppState = "idle" | "running" | "complete" | "error";
@@ -58,7 +58,7 @@ export default function HomePage() {
           }
           break;
         case "pipeline_error":
-          setError(event.error ?? "Unknown error");
+          setError(event.error ?? "אירעה שגיאה לא ידועה");
           setAppState("error");
           break;
       }
@@ -133,7 +133,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-slate-900 text-white">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between" dir="rtl">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-lg shadow-lg shadow-blue-900/30">
               🔭
@@ -157,7 +157,7 @@ export default function HomePage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Hero — only on idle */}
         {appState === "idle" && (
-          <div className="text-center space-y-3 py-6" dir="rtl">
+          <div className="text-center space-y-3 py-6">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
               מחקר מתחרים ושוק{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
@@ -180,15 +180,15 @@ export default function HomePage() {
 
             {appState !== "idle" && (
               <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
-                <h3 className="text-sm font-bold text-slate-300 mb-4" dir="rtl">
-                  📡 מצב ה-Pipeline
+                <h3 className="text-sm font-bold text-slate-300 mb-4">
+                  📡 מצב העיבוד
                 </h3>
                 <PipelineProgress steps={steps} />
               </div>
             )}
 
             {appState === "idle" && (
-              <div className="space-y-3" dir="rtl">
+              <div className="space-y-3">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide text-center">
                   תהליך ה-AI
                 </p>
@@ -199,7 +199,6 @@ export default function HomePage() {
                   >
                     <span className="font-bold text-slate-500 tabular-nums">{step.id}</span>
                     <span className="text-slate-300">{step.nameHe}</span>
-                    <span className="text-slate-600 text-xs mr-auto">{step.nameEn}</span>
                   </div>
                 ))}
               </div>
@@ -210,7 +209,7 @@ export default function HomePage() {
           {appState !== "idle" && (
             <div>
               {error && appState === "error" && (
-                <div className="bg-red-950 border border-red-800 rounded-2xl p-6 space-y-3" dir="rtl">
+                <div className="bg-red-950 border border-red-800 rounded-2xl p-6 space-y-3">
                   <h3 className="text-red-300 font-bold flex items-center gap-2">
                     <span>❌</span>
                     <span>שגיאה בעיבוד</span>
@@ -223,7 +222,7 @@ export default function HomePage() {
               )}
 
               {appState === "running" && !report && (
-                <div className="space-y-4" dir="rtl">
+                <div className="space-y-4">
                   <div className="bg-slate-800/30 border border-slate-700 rounded-2xl p-8 text-center space-y-3">
                     <div className="flex justify-center">
                       <div className="relative w-16 h-16">
@@ -280,7 +279,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      <footer className="border-t border-slate-800 mt-16 py-6 text-center text-xs text-slate-600" dir="rtl">
+      <footer className="border-t border-slate-800 mt-16 py-6 text-center text-xs text-slate-600">
         <p>MarketLens AI · מופעל על ידי Claude Opus 4.6 · כל הניתוחים בעברית</p>
       </footer>
     </div>

@@ -33,7 +33,7 @@ const statusConfig = {
     border: "border-emerald-500",
     text: "text-emerald-300",
     badge: "bg-emerald-600 text-white",
-    label: "הושלם",
+    label: "הושלם ✓",
   },
   error: {
     bg: "bg-red-950",
@@ -78,9 +78,7 @@ function ElapsedTime({ step }: { step: PipelineStep }) {
   const end = step.completedAt ?? Date.now();
   const seconds = Math.round((end - step.startedAt) / 1000);
   return (
-    <span className="text-xs text-slate-400">
-      {seconds}ש׳
-    </span>
+    <span className="text-xs text-slate-400">{seconds} שנ׳</span>
   );
 }
 
@@ -89,7 +87,7 @@ export default function PipelineProgress({ steps }: Props) {
   const progressPct = (completedCount / steps.length) * 100;
 
   return (
-    <div className="space-y-4" dir="rtl">
+    <div className="space-y-4">
       {/* Overall progress bar */}
       <div className="space-y-1">
         <div className="flex justify-between text-sm text-slate-400">
@@ -113,7 +111,7 @@ export default function PipelineProgress({ steps }: Props) {
               key={step.id}
               className={`relative rounded-xl border p-4 transition-all duration-500 ${cfg.bg} ${cfg.border}`}
             >
-              {/* Animated glow when running */}
+              {/* Animated pulse border when running */}
               {step.status === "running" && (
                 <div className="absolute inset-0 rounded-xl border border-blue-400 animate-pulse opacity-40 pointer-events-none" />
               )}
@@ -122,12 +120,11 @@ export default function PipelineProgress({ steps }: Props) {
                 <span className="text-2xl mt-0.5">{stepIcons[step.id]}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`text-sm font-semibold ${cfg.text}`}>
+                    <span className={`text-sm font-semibold leading-snug ${cfg.text}`}>
                       {step.nameHe}
                     </span>
                     <StepStatusIcon status={step.status} />
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">{step.nameEn}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cfg.badge}`}>
                       {cfg.label}

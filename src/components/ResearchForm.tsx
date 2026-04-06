@@ -25,7 +25,7 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5" dir="rtl">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-slate-200">
           שוק או מתחרה לניתוח

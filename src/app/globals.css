@@ -1,21 +1,37 @@
+/* Load "Assistant" — a clean, modern Hebrew-optimised sans-serif font */
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&display=swap');
+
 @import "tailwindcss";
 
 :root {
   --background: #0f172a;
   --foreground: #f1f5f9;
+  --font-hebrew: 'Assistant', 'Arial Hebrew', Arial, sans-serif;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  direction: rtl;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-hebrew);
+  direction: rtl;
+  /* Improve Hebrew text rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Slightly looser line-height helps Hebrew readability */
+p, li, span {
+  line-height: 1.7;
 }
 
 /* Smooth scrollbar */
