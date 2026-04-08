@@ -165,14 +165,14 @@ export default function HomePage() {
             </div>
 
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-white">
-              תובנות שוק אסטרטגיות
+              ניתוח העסק שלך מול המתחרים
               <br />
-              <span className="text-gold-gradient">בתוך פחות מ-5 דקות</span>
+              <span className="text-gold-gradient">ב-5 דקות</span>
             </h2>
 
             <p className="text-zinc-400 text-lg max-w-xl mx-auto leading-relaxed">
-              הדבק קישור לאתר המתחרה — המערכת סורקת, מנתחת, ומייצרת
-              דוח אסטרטגי מקיף עם ניתוח פורטר, SWOT, וציון שוק 0–100
+              הזן את כתובת האתר שלך — המערכת תזהה את המתחרים, תנתח את השוק, ותפיק
+              דוח השוואתי עם ציון מיצוב 0–100, SWOT, ומודל פורטר
             </p>
           </div>
         )}

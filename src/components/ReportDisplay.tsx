@@ -1,17 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
-import type { ResearchReport } from "@/types/research";
+import { useEffect, useRef, useState } from "react";
+import type { ResearchReport, CompetitorProfile } from "@/types/research";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const G  = "#D4AF37";          // gold
-const GL = "#E8C84A";          // gold light
-const GD = "#C5A028";          // gold dark
-const GM = "rgba(212,175,55,0.12)";  // gold muted bg
-const GB = "rgba(212,175,55,0.22)";  // gold border
-const S  = "rgba(255,255,255,0.04)"; // surface
-const SB = "rgba(255,255,255,0.08)"; // surface border
-const DT = "rgba(255,255,255,0.35)"; // dim text
+const G  = "#D4AF37";
+const GD = "#C5A028";
+const GM = "rgba(212,175,55,0.12)";
+const GB = "rgba(212,175,55,0.22)";
+const S  = "rgba(255,255,255,0.04)";
+const SB = "rgba(255,255,255,0.08)";
+const DT = "rgba(255,255,255,0.35)";
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
@@ -29,10 +28,10 @@ function SectionCard({ icon, title, children }: { icon: string; title: string; c
 
 function Tag({ label, color = "default" }: { label: string; color?: "gold" | "red" | "blue" | "green" | "default" }) {
   const styles: Record<string, { background: string; color: string; border: string }> = {
-    gold:    { background: GM, color: G,      border: GB },
-    red:     { background: "rgba(239,68,68,0.1)", color: "#f87171", border: "rgba(239,68,68,0.25)" },
-    blue:    { background: "rgba(99,102,241,0.1)", color: "#818cf8", border: "rgba(99,102,241,0.25)" },
-    green:   { background: "rgba(52,211,153,0.1)", color: "#6ee7b7", border: "rgba(52,211,153,0.25)" },
+    gold:    { background: GM, color: G,       border: GB },
+    red:     { background: "rgba(239,68,68,0.1)",   color: "#f87171", border: "rgba(239,68,68,0.25)" },
+    blue:    { background: "rgba(99,102,241,0.1)",  color: "#818cf8", border: "rgba(99,102,241,0.25)" },
+    green:   { background: "rgba(52,211,153,0.1)",  color: "#6ee7b7", border: "rgba(52,211,153,0.25)" },
     default: { background: S, color: "#a1a1aa", border: SB },
   };
   const s = styles[color] ?? styles.default;
@@ -74,15 +73,15 @@ function RiskBadge({ level }: { level: string }) {
 
 function TimeframeBadge({ tf }: { tf: string }) {
   const map: Record<string, { label: string; color: string }> = {
-    immediate:    { label: "מיידי",       color: "#f87171" },
-    "short-term": { label: "קצר-טווח",    color: "#fbbf24" },
-    "long-term":  { label: "ארוך-טווח",   color: DT },
+    immediate:    { label: "מיידי",     color: "#f87171" },
+    "short-term": { label: "קצר-טווח",  color: "#fbbf24" },
+    "long-term":  { label: "ארוך-טווח", color: DT },
   };
   const s = map[tf] ?? map["long-term"];
   return <span className="text-xs" style={{ color: s.color }}>{s.label}</span>;
 }
 
-// ─── Market Lens Score ────────────────────────────────────────────────────────
+// ─── Market Position Score ────────────────────────────────────────────────────
 
 function computeScore(report: ResearchReport): { score: number; strengths: string[]; improvements: string[] } {
   let score = 50;
@@ -93,46 +92,39 @@ function computeScore(report: ResearchReport): { score: number; strengths: strin
     score += adj[report.step3.overallRiskLevel] ?? 0;
   }
   score = Math.max(5, Math.min(97, Math.round(score)));
-  const strengths   = report.step4?.swotMatrix.strengths.slice(0, 3)   ?? [];
-  const improvements = report.step4?.swotMatrix.weaknesses.slice(0, 3) ?? [];
+  const strengths    = report.step4?.swotMatrix.strengths.slice(0, 3)   ?? [];
+  const improvements = report.step4?.swotMatrix.weaknesses.slice(0, 3)  ?? [];
   return { score, strengths, improvements };
 }
 
 function ScoreGauge({ score }: { score: number }) {
   const R    = 52;
-  const C    = 2 * Math.PI * R;   // full circumference
-  const half = C / 2;              // half arc = 163.4
+  const C    = 2 * Math.PI * R;
+  const half = C / 2;
   const fill = (score / 100) * half;
   const arcColor = score >= 70 ? G : score >= 40 ? GD : "#9a6c10";
-  const label    = score >= 70 ? "מצוין" : score >= 50 ? "טוב" : score >= 30 ? "בינוני" : "נמוך";
+  const label    = score >= 70 ? "מיצוב חזק" : score >= 50 ? "טוב" : score >= 30 ? "בינוני" : "נמוך";
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width="136" height="84" viewBox="0 0 136 84" aria-label={`Market Lens Score ${score}`}>
-        {/* track */}
+      <svg width="136" height="84" viewBox="0 0 136 84" aria-label={"Market Position Score " + score}>
         <circle cx="68" cy="68" r={R} fill="none" stroke={GM} strokeWidth="10"
-          strokeDasharray={`${half} ${C - half}`} strokeLinecap="round"
+          strokeDasharray={half + " " + (C - half)} strokeLinecap="round"
           transform="rotate(180 68 68)" />
-        {/* fill */}
         <circle cx="68" cy="68" r={R} fill="none" stroke={arcColor} strokeWidth="10"
-          strokeDasharray={`${fill} ${C - fill}`} strokeLinecap="round"
+          strokeDasharray={fill + " " + (C - fill)} strokeLinecap="round"
           transform="rotate(180 68 68)"
-          style={{ filter: `drop-shadow(0 0 8px ${arcColor}80)`, transition: "stroke-dasharray 1s ease-out" }} />
-        {/* score number */}
+          style={{ filter: "drop-shadow(0 0 8px " + arcColor + "80)", transition: "stroke-dasharray 1s ease-out" }} />
         <text x="68" y="58" textAnchor="middle" fill="white" fontSize="28" fontWeight="800" fontFamily="Heebo,Arial">
           {score}
         </text>
-        {/* /100 */}
-        <text x="68" y="72" textAnchor="middle" fill={DT} fontSize="10" fontFamily="Heebo,Arial">
-          / 100
-        </text>
-        {/* label */}
+        <text x="68" y="72" textAnchor="middle" fill={DT} fontSize="10" fontFamily="Heebo,Arial">/ 100</text>
         <text x="68" y="84" textAnchor="middle" fill={arcColor} fontSize="11" fontWeight="700" fontFamily="Heebo,Arial">
           {label}
         </text>
       </svg>
-      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: G, letterSpacing: "0.18em", fontSize: "9px" }}>
-        MARKET LENS SCORE
+      <p style={{ color: G, fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em" }}>
+        MARKET POSITION SCORE
       </p>
     </div>
   );
@@ -142,18 +134,16 @@ function InsightsCards({ strengths, improvements }: { strengths: string[]; impro
   if (!strengths.length && !improvements.length) return null;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {/* Preserve */}
-      <div className="rounded-xl p-4 space-y-3" style={{ background: GM, border: `1px solid ${GB}` }}>
+      <div className="rounded-xl p-4 space-y-3" style={{ background: GM, border: "1px solid " + GB }}>
         <div className="flex items-center gap-2">
           <div className="w-1 h-4 rounded-full" style={{ background: G }} />
           <p className="text-xs font-bold tracking-wide" style={{ color: G }}>נקודות לשימור</p>
         </div>
         <BulletList items={strengths.length ? strengths : ["בצע מחקר מלא לקבלת תובנות"]} goldDot />
       </div>
-      {/* Improve */}
-      <div className="rounded-xl p-4 space-y-3" style={{ background: S, border: `1px solid ${SB}` }}>
+      <div className="rounded-xl p-4 space-y-3" style={{ background: S, border: "1px solid " + SB }}>
         <div className="flex items-center gap-2">
-          <div className="w-1 h-4 rounded-full" style={{ background: "#fff" }} />
+          <div className="w-1 h-4 rounded-full bg-white" />
           <p className="text-xs font-bold tracking-wide text-white">נקודות לשיפור</p>
         </div>
         <BulletList items={improvements.length ? improvements : ["בצע מחקר מלא לקבלת תובנות"]} />
@@ -162,45 +152,75 @@ function InsightsCards({ strengths, improvements }: { strengths: string[]; impro
   );
 }
 
-// ─── PDF Button ───────────────────────────────────────────────────────────────
+// ─── PDF Export (client-side only, Hebrew RTL safe) ───────────────────────────
 
-function DownloadPdfButton({ targetRef, filename }: { targetRef: React.RefObject<HTMLDivElement | null>; filename: string }) {
+function DownloadPdfButton({ targetRef, filename }: {
+  targetRef: React.RefObject<HTMLDivElement | null>;
+  filename: string;
+}) {
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Guard: only run on client
+  useEffect(() => { setMounted(true); }, []);
 
   const handleDownload = async () => {
+    if (!mounted || typeof window === "undefined") return;
     const el = targetRef.current;
     if (!el) return;
     setLoading(true);
     try {
-      // Dynamic import — works in Edge Runtime on client side only
+      // Ensure Heebo font is loaded for html2canvas to capture correctly
+      if (!document.getElementById("heebo-pdf-font")) {
+        const link = document.createElement("link");
+        link.id   = "heebo-pdf-font";
+        link.rel  = "stylesheet";
+        link.href = "https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800&display=swap";
+        document.head.appendChild(link);
+        // Small wait for font to load
+        await new Promise<void>((r) => setTimeout(r, 400));
+      }
+
       const [{ default: html2canvas }, jspdfMod] = await Promise.all([
         import("html2canvas"),
         import("jspdf"),
       ]);
-      // jsPDF 4.x ships a named export; older versions use default
+      // jsPDF 4.x: named export. Older: default export. Handle both.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const JsPDF = (jspdfMod as any).jsPDF ?? (jspdfMod as any).default;
+
+      // Scroll to top so html2canvas starts at the top of the element
+      window.scrollTo({ top: 0, behavior: "instant" });
+      await new Promise<void>((r) => setTimeout(r, 100));
 
       const canvas = await html2canvas(el, {
         scale: 2,
         backgroundColor: "#000000",
         useCORS: true,
+        allowTaint: true,
         logging: false,
         scrollX: 0,
         scrollY: 0,
+        // Capture the full element width, not the viewport
+        width:  el.scrollWidth,
+        height: el.scrollHeight,
+        windowWidth:  el.scrollWidth,
+        windowHeight: el.scrollHeight,
       });
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageW  = pdf.internal.pageSize.getWidth();
-      const pageH  = pdf.internal.pageSize.getHeight();
-      const imgW   = pageW;
-      const imgH   = (canvas.height * imgW) / canvas.width;
+      // Single data-URL call (performance)
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+
+      const pdf  = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW  = pageW;
+      const imgH  = (canvas.height * imgW) / canvas.width;
 
       let y = 0, page = 0;
       while (y < imgH) {
         if (page > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, -y, imgW, imgH);
+        pdf.addImage(imgData, "JPEG", 0, -y, imgW, imgH);
         y += pageH;
         page++;
       }
@@ -213,14 +233,19 @@ function DownloadPdfButton({ targetRef, filename }: { targetRef: React.RefObject
     }
   };
 
+  if (!mounted) return null;
+
   return (
-    <button onClick={handleDownload} disabled={loading}
-      className="flex items-center gap-2 font-bold text-sm px-5 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+    <button
+      onClick={handleDownload}
+      disabled={loading}
+      className="flex items-center gap-2 font-bold text-sm px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
       style={{
-        background: loading ? GM : `linear-gradient(135deg, ${G} 0%, ${GD} 100%)`,
+        background: loading ? GM : "linear-gradient(135deg, " + G + " 0%, " + GD + " 100%)",
         color: "#000",
-        boxShadow: loading ? "none" : `0 4px 20px ${G}40`,
-      }}>
+        boxShadow: loading ? "none" : "0 4px 20px " + G + "40",
+      }}
+    >
       {loading ? (
         <>
           <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
@@ -232,72 +257,105 @@ function DownloadPdfButton({ targetRef, filename }: { targetRef: React.RefObject
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          <span>הורד כ-PDF</span>
+          <span>הורד דוח PDF</span>
         </>
       )}
     </button>
   );
 }
 
-// ─── Step 1: Competitor Analysis ─────────────────────────────────────────────
+// ─── Business Profile Card (reusable for user + competitors) ─────────────────
+
+function BusinessCard({ profile, isUser }: { profile: CompetitorProfile; isUser?: boolean }) {
+  return (
+    <div className="rounded-xl p-4 space-y-3"
+         style={{
+           background: isUser ? "rgba(212,175,55,0.08)" : "rgba(0,0,0,0.5)",
+           border: isUser ? "1px solid " + GB : "1px solid " + SB,
+         }}>
+      <div className="flex items-center gap-2 flex-wrap">
+        <h3 className="font-bold text-white">{profile.name}</h3>
+        {isUser && (
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{ background: GM, color: G, border: "1px solid " + GB }}>
+            העסק שלך
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: G }}>מיצוב</p>
+          <p className="text-zinc-300 text-xs">{profile.identityAndNarrative.positioning}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: G }}>קהל יעד</p>
+          <p className="text-zinc-300 text-xs">{profile.targetAudience.demographics}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: G }}>מחיר ומודל</p>
+          <div className="flex flex-wrap gap-1">
+            {profile.offer.pricingModels.map((pm, j) => <Tag key={j} label={pm} color="gold" />)}
+            {profile.offer.priceRange && <Tag label={profile.offer.priceRange} />}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: G }}>ערוצים</p>
+          <div className="flex flex-wrap gap-1">
+            {profile.marketingAndTraffic.distributionChannels.slice(0, 4).map((ch, j) => <Tag key={j} label={ch} />)}
+          </div>
+        </div>
+      </div>
+      {profile.targetAudience.specificNeeds.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: G }}>צרכים ספציפיים</p>
+          <div className="flex flex-wrap gap-1">
+            {profile.targetAudience.specificNeeds.map((n, j) => <Tag key={j} label={n} color="green" />)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Step 1: Me vs. The Market ────────────────────────────────────────────────
 
 function CompetitorAnalysisSection({ report }: { report: ResearchReport }) {
   const data = report.step1;
   if (!data) return null;
   return (
-    <SectionCard icon="🔍" title="שלב 1: ניתוח מתחרים">
+    <SectionCard icon="🔍" title="שלב 1: העסק שלי מול השוק">
       {data.marketOverview && (
         <div className="rounded-xl p-4 text-sm text-zinc-300 leading-relaxed"
-             style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${SB}` }}>
+             style={{ background: "rgba(0,0,0,0.4)", border: "1px solid " + SB }}>
           {data.marketOverview}
         </div>
       )}
-      <div className="space-y-4">
-        {data.competitors.map((c, i) => (
-          <div key={i} className="rounded-xl p-4 space-y-3"
-               style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${GB}` }}>
-            <h3 className="font-bold text-white">{c.name}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: G }}>זהות ומיצוב</p>
-                <p className="text-zinc-300 text-xs">{c.identityAndNarrative.positioning}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: G }}>קהל יעד</p>
-                <p className="text-zinc-300 text-xs">{c.targetAudience.demographics}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: G }}>מחיר ומודל</p>
-                <div className="flex flex-wrap gap-1">
-                  {c.offer.pricingModels.map((pm, j) => <Tag key={j} label={pm} color="gold" />)}
-                  {c.offer.priceRange && <Tag label={c.offer.priceRange} />}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: G }}>ערוצי שיווק</p>
-                <div className="flex flex-wrap gap-1">
-                  {c.marketingAndTraffic.distributionChannels.slice(0, 4).map((ch, j) => <Tag key={j} label={ch} />)}
-                </div>
-              </div>
-            </div>
-            {c.targetAudience.specificNeeds.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: G }}>צרכים ספציפיים</p>
-                <div className="flex flex-wrap gap-1">
-                  {c.targetAudience.specificNeeds.map((n, j) => <Tag key={j} label={n} color="green" />)}
-                </div>
-              </div>
-            )}
+
+      {/* User business — prominent */}
+      {data.userProfile && (
+        <div>
+          <p className="text-sm font-bold mb-2" style={{ color: G }}>◆ העסק שלך</p>
+          <BusinessCard profile={data.userProfile} isUser />
+        </div>
+      )}
+
+      {/* Competitors */}
+      {data.competitors.length > 0 && (
+        <div>
+          <p className="text-sm font-bold text-white mb-2">⚔️ מתחרים מרכזיים בתעשייה</p>
+          <div className="space-y-3">
+            {data.competitors.map((c, i) => <BusinessCard key={i} profile={c} />)}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
       {data.indirectCompetitors.length > 0 && (
         <div>
           <p className="text-sm font-semibold text-white mb-2">מתחרים עקיפים</p>
           <div className="flex flex-wrap gap-2">
             {data.indirectCompetitors.map((ic, i) => (
               <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                   style={{ background: S, border: `1px solid ${SB}` }}>
+                   style={{ background: S, border: "1px solid " + SB }}>
                 <span className="text-sm text-zinc-200">{ic.name}</span>
                 <RiskBadge level={ic.threatLevel} />
               </div>
@@ -315,10 +373,10 @@ function BlueOceanSection({ report }: { report: ResearchReport }) {
   const data = report.step2;
   if (!data) return null;
   return (
-    <SectionCard icon="🌊" title="שלב 2: האוקיינוס הכחול — פערי הזדמנויות">
+    <SectionCard icon="🌊" title="שלב 2: הזדמנויות שוק לעסק שלי">
       {data.topOpportunity && (
-        <div className="rounded-xl p-4" style={{ background: GM, border: `1px solid ${GB}` }}>
-          <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: G }}>הזדמנות מרכזית</p>
+        <div className="rounded-xl p-4" style={{ background: GM, border: "1px solid " + GB }}>
+          <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: G }}>ההזדמנות הגדולה ביותר</p>
           <p className="text-white font-medium text-sm">{data.topOpportunity}</p>
         </div>
       )}
@@ -336,17 +394,17 @@ function BlueOceanSection({ report }: { report: ResearchReport }) {
       )}
       {data.analysis.unmetNeeds.length > 0 && (
         <div>
-          <p className="text-sm font-semibold text-white mb-2">צרכים שלא נענים</p>
+          <p className="text-sm font-semibold text-white mb-2">צרכים שלא נענים בשוק</p>
           <div className="space-y-2">
             {data.analysis.unmetNeeds.map((n, i) => (
-              <div key={i} className="rounded-xl p-3 space-y-1" style={{ background: S, border: `1px solid ${SB}` }}>
+              <div key={i} className="rounded-xl p-3" style={{ background: S, border: "1px solid " + SB }}>
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm text-zinc-200">{n.description}</p>
                   <span className="text-xs font-bold shrink-0" style={{ color: G }}>{n.intensityScore}/10</span>
                 </div>
                 {n.evidenceSources.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {n.evidenceSources.map((s, j) => <Tag key={j} label={s} color="gold" />)}
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {n.evidenceSources.map((src, j) => <Tag key={j} label={src} color="gold" />)}
                   </div>
                 )}
               </div>
@@ -361,7 +419,7 @@ function BlueOceanSection({ report }: { report: ResearchReport }) {
             {data.analysis.trendOpportunities.map((t, i) => {
               const typeLabel: Record<string, string> = { social: "חברתי", economic: "כלכלי", technological: "טכנולוגי", regulatory: "רגולטורי" };
               return (
-                <div key={i} className="rounded-xl p-3 space-y-1" style={{ background: S, border: `1px solid ${SB}` }}>
+                <div key={i} className="rounded-xl p-3 space-y-1" style={{ background: S, border: "1px solid " + SB }}>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-white">{t.trendName}</span>
                     <Tag label={typeLabel[t.type] ?? t.type} color="gold" />
@@ -375,8 +433,8 @@ function BlueOceanSection({ report }: { report: ResearchReport }) {
         </div>
       )}
       {data.analysis.whitespaceInsights && (
-        <div className="rounded-xl p-4" style={{ background: S, border: `1px solid ${SB}` }}>
-          <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: DT }}>תובנות רווח לבן</p>
+        <div className="rounded-xl p-4" style={{ background: S, border: "1px solid " + SB }}>
+          <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: DT }}>רווחים לבנים לכיבוש</p>
           <p className="text-sm text-zinc-300">{data.analysis.whitespaceInsights}</p>
         </div>
       )}
@@ -390,13 +448,13 @@ function RiskSection({ report }: { report: ResearchReport }) {
   const data = report.step3;
   if (!data) return null;
   const groups = [
-    { label: "שיבוש טכנולוגי", items: data.technologicalDisruptions, icon: "⚙️" },
-    { label: "חלופות צרכניות",  items: data.consumerAlternatives,    icon: "🔄" },
-    { label: "יציבות שוק",      items: data.marketStabilityRisks,    icon: "📉" },
+    { label: "שיבוש טכנולוגי",  items: data.technologicalDisruptions, icon: "⚙️" },
+    { label: "חלופות צרכניות",   items: data.consumerAlternatives,    icon: "🔄" },
+    { label: "יציבות שוק",       items: data.marketStabilityRisks,    icon: "📉" },
   ];
   return (
-    <SectionCard icon="⚠️" title="שלב 3: ניתוח סיכונים ואיומים">
-      <div className="flex items-center gap-3 rounded-xl p-3" style={{ background: S, border: `1px solid ${SB}` }}>
+    <SectionCard icon="⚠️" title="שלב 3: סיכונים לעסק שלי בשוק">
+      <div className="flex items-center gap-3 rounded-xl p-3" style={{ background: S, border: "1px solid " + SB }}>
         <span className="text-sm text-zinc-400">רמת סיכון כוללת:</span>
         <RiskBadge level={data.overallRiskLevel} />
       </div>
@@ -408,7 +466,7 @@ function RiskSection({ report }: { report: ResearchReport }) {
           </p>
           <div className="space-y-2">
             {g.items.map((r, i) => (
-              <div key={i} className="rounded-xl p-3 space-y-1" style={{ background: S, border: `1px solid ${SB}` }}>
+              <div key={i} className="rounded-xl p-3 space-y-1" style={{ background: S, border: "1px solid " + SB }}>
                 <div className="flex items-center flex-wrap gap-2">
                   <span className="font-medium text-sm text-white">{r.title}</span>
                   <RiskBadge level={r.severity} />
@@ -431,20 +489,18 @@ function ExecutiveSummarySection({ report }: { report: ResearchReport }) {
   const data = report.step4;
   if (!data) return null;
   return (
-    <SectionCard icon="📊" title="שלב 4: תקציר מנהלים">
+    <SectionCard icon="📊" title="שלב 4: תקציר מנהלים — אני מול השוק">
       {data.executiveOneLiner && (
-        <div className="rounded-xl p-5 text-center" style={{ background: GM, border: `1px solid ${GB}` }}>
+        <div className="rounded-xl p-5 text-center" style={{ background: GM, border: "1px solid " + GB }}>
           <p className="text-white font-semibold text-base leading-relaxed">{data.executiveOneLiner}</p>
         </div>
       )}
-
-      {/* Audience Map */}
       {data.audienceMap.length > 0 && (
         <div>
-          <p className="text-sm font-semibold text-white mb-2">🎯 מפת קהל</p>
+          <p className="text-sm font-semibold text-white mb-2">🎯 מפת קהל יעד</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {data.audienceMap.map((seg, i) => (
-              <div key={i} className="rounded-xl p-3 space-y-2" style={{ background: S, border: `1px solid ${SB}` }}>
+              <div key={i} className="rounded-xl p-3 space-y-2" style={{ background: S, border: "1px solid " + SB }}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold text-white text-sm">{seg.name}</span>
                   <Tag label={seg.willingnessToPay === "high" ? "נכונות גבוהה" : seg.willingnessToPay === "low" ? "נמוכה" : "בינונית"}
@@ -456,13 +512,11 @@ function ExecutiveSummarySection({ report }: { report: ResearchReport }) {
           </div>
         </div>
       )}
-
-      {/* ERRC */}
       {data.blueOceanERRC && (
         <div>
-          <p className="text-sm font-semibold text-white mb-2">🌊 מטריצת ERRC</p>
+          <p className="text-sm font-semibold text-white mb-2">🌊 מטריצת ERRC — הבידול שלי</p>
           {data.blueOceanERRC.blueOceanStatement && (
-            <div className="rounded-xl p-3 mb-2" style={{ background: GM, border: `1px solid ${GB}` }}>
+            <div className="rounded-xl p-3 mb-2" style={{ background: GM, border: "1px solid " + GB }}>
               <p className="text-sm text-white">{data.blueOceanERRC.blueOceanStatement}</p>
             </div>
           )}
@@ -473,7 +527,7 @@ function ExecutiveSummarySection({ report }: { report: ResearchReport }) {
               { key: "raise"     as const, label: "הרם",  icon: "📈" },
               { key: "create"    as const, label: "צור",  icon: "✨" },
             ]).map(({ key, label, icon }) => (
-              <div key={key} className="rounded-xl p-3 space-y-1.5" style={{ background: S, border: `1px solid ${SB}` }}>
+              <div key={key} className="rounded-xl p-3 space-y-1.5" style={{ background: S, border: "1px solid " + SB }}>
                 <p className="text-xs font-bold" style={{ color: G }}>{icon} {label}</p>
                 {data.blueOceanERRC[key].map((item, i) => (
                   <p key={i} className="text-xs text-zinc-300 flex items-start gap-1.5">
@@ -485,19 +539,17 @@ function ExecutiveSummarySection({ report }: { report: ResearchReport }) {
           </div>
         </div>
       )}
-
-      {/* SWOT */}
       {data.swotMatrix && (
         <div>
-          <p className="text-sm font-semibold text-white mb-2">🔲 מטריצת SWOT</p>
+          <p className="text-sm font-semibold text-white mb-2">🔲 SWOT — מיצוב שוק</p>
           <div className="grid grid-cols-2 gap-2 mb-2">
             {([
-              { key: "strengths"    as const, label: "חוזקות",     color: G },
-              { key: "weaknesses"   as const, label: "חולשות",     color: "#f87171" },
-              { key: "opportunities"as const, label: "הזדמנויות",  color: "#818cf8" },
-              { key: "threats"      as const, label: "איומים",     color: "#fb923c" },
+              { key: "strengths"     as const, label: "חוזקות",    color: G },
+              { key: "weaknesses"    as const, label: "חולשות",    color: "#f87171" },
+              { key: "opportunities" as const, label: "הזדמנויות", color: "#818cf8" },
+              { key: "threats"       as const, label: "איומים",    color: "#fb923c" },
             ]).map(({ key, label, color }) => (
-              <div key={key} className="rounded-xl p-3 space-y-1" style={{ background: S, border: `1px solid ${SB}` }}>
+              <div key={key} className="rounded-xl p-3 space-y-1" style={{ background: S, border: "1px solid " + SB }}>
                 <p className="text-xs font-bold" style={{ color }}>{label}</p>
                 {data.swotMatrix[key].slice(0, 3).map((item, i) => (
                   <p key={i} className="text-xs text-zinc-300 flex items-start gap-1.5">
@@ -508,11 +560,11 @@ function ExecutiveSummarySection({ report }: { report: ResearchReport }) {
             ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div className="rounded-xl p-3" style={{ background: GM, border: `1px solid ${GB}` }}>
+            <div className="rounded-xl p-3" style={{ background: GM, border: "1px solid " + GB }}>
               <p className="text-xs font-bold mb-2" style={{ color: G }}>⚡ פעל עכשיו</p>
               <BulletList items={data.swotMatrix.actNow} goldDot />
             </div>
-            <div className="rounded-xl p-3" style={{ background: S, border: `1px solid ${SB}` }}>
+            <div className="rounded-xl p-3" style={{ background: S, border: "1px solid " + SB }}>
               <p className="text-xs font-bold mb-2 text-red-400">🚫 הימנע</p>
               <BulletList items={data.swotMatrix.avoid} />
             </div>
@@ -532,7 +584,7 @@ function PorterScoreBar({ score }: { score: number }) {
     <div className="flex items-center gap-2">
       <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
         <div className="h-full rounded-full transition-all duration-700"
-             style={{ width: `${pct}%`, background: color }} />
+             style={{ width: pct + "%", background: color }} />
       </div>
       <span className="text-xs font-bold tabular-nums w-8 text-right" style={{ color }}>{score}/10</span>
     </div>
@@ -543,20 +595,19 @@ function PortersSection({ report }: { report: ResearchReport }) {
   const data = report.step5;
   if (!data) return null;
   const forces = [
-    { key: "rivalry"       as const, icon: "⚔️"  },
-    { key: "newEntrants"   as const, icon: "🚪"  },
-    { key: "supplierPower" as const, icon: "🏭"  },
-    { key: "buyerPower"    as const, icon: "🛒"  },
-    { key: "substitutes"   as const, icon: "🔄"  },
+    { key: "rivalry"       as const, icon: "⚔️" },
+    { key: "newEntrants"   as const, icon: "🚪" },
+    { key: "supplierPower" as const, icon: "🏭" },
+    { key: "buyerPower"    as const, icon: "🛒" },
+    { key: "substitutes"   as const, icon: "🔄" },
   ];
   const overall = data.overallAttractivenessScore;
   const overallColor = overall >= 7 ? G : overall >= 4 ? GD : "#9a6c10";
   return (
-    <SectionCard icon="🏛️" title="שלב 5: חמשת הכוחות של פורטר">
-      {/* Overall */}
-      <div className="rounded-xl p-4 space-y-3" style={{ background: GM, border: `1px solid ${GB}` }}>
+    <SectionCard icon="🏛️" title="שלב 5: חמשת הכוחות של פורטר — פרספקטיבת העסק">
+      <div className="rounded-xl p-4 space-y-3" style={{ background: GM, border: "1px solid " + GB }}>
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-white">ציון אטרקטיביות כולל</span>
+          <span className="text-sm font-semibold text-white">ציון אטרקטיביות שוק לעסק שלי</span>
           <span className="text-2xl font-extrabold tabular-nums" style={{ color: overallColor }}>{overall}/10</span>
         </div>
         <PorterScoreBar score={overall} />
@@ -564,12 +615,11 @@ function PortersSection({ report }: { report: ResearchReport }) {
           <p className="text-sm text-zinc-300 leading-relaxed pt-1">{data.strategicImplication}</p>
         )}
       </div>
-      {/* Forces grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {forces.map(({ key, icon }) => {
           const f = data[key];
           return (
-            <div key={key} className="rounded-xl p-4 space-y-2" style={{ background: S, border: `1px solid ${GB}` }}>
+            <div key={key} className="rounded-xl p-4 space-y-2" style={{ background: S, border: "1px solid " + GB }}>
               <div className="flex items-center gap-2">
                 <span className="text-base">{icon}</span>
                 <p className="text-sm font-bold text-white leading-snug">{f.name}</p>
@@ -598,7 +648,7 @@ function PortersSection({ report }: { report: ResearchReport }) {
 interface Props { report: ResearchReport; }
 
 export default function ReportDisplay({ report }: Props) {
-  const reportRef  = useRef<HTMLDivElement>(null);
+  const reportRef   = useRef<HTMLDivElement>(null);
   const allComplete = report.steps.every((s) => s.status === "completed");
   const { score, strengths, improvements } = computeScore(report);
 
@@ -606,16 +656,17 @@ export default function ReportDisplay({ report }: Props) {
     try { return new URL(report.query.competitorUrl).hostname.replace(/^www\./, ""); }
     catch { return "report"; }
   })();
-  const pdfFilename = `MarketLens-${hostname}-${new Date(report.createdAt).toISOString().slice(0, 10)}.pdf`;
+  const pdfFilename = "MarketLens-" + hostname + "-" + new Date(report.createdAt).toISOString().slice(0, 10) + ".pdf";
 
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
-      {/* Report header */}
-      <div className="rounded-2xl p-5 fade-in-up" style={{ background: S, border: `1px solid ${GB}` }}>
+      {/* Header card */}
+      <div className="rounded-2xl p-5 fade-in-up" style={{ background: S, border: "1px solid " + GB }}>
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: G, letterSpacing: "0.18em" }}>
-              דוח מחקר שוק — MarketLens AI
+            <p className="text-xs font-bold uppercase tracking-widest mb-1"
+               style={{ color: G, letterSpacing: "0.18em" }}>
+              דוח השוואתי — העסק שלי מול השוק
             </p>
             <h1 className="text-lg font-bold text-white font-mono truncate" dir="ltr">
               {report.query.competitorUrl}
@@ -627,15 +678,12 @@ export default function ReportDisplay({ report }: Props) {
               {new Date(report.createdAt).toLocaleString("he-IL")}
             </p>
           </div>
-
           <div className="flex items-center gap-4 flex-wrap shrink-0">
-            {/* Score gauge */}
             <ScoreGauge score={score} />
-
             <div className="flex flex-col gap-2">
               {allComplete && (
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
-                      style={{ background: GM, color: G, border: `1px solid ${GB}` }}>
+                      style={{ background: GM, color: G, border: "1px solid " + GB }}>
                   ✓ הושלם
                 </span>
               )}
@@ -647,10 +695,10 @@ export default function ReportDisplay({ report }: Props) {
         </div>
       </div>
 
-      {/* Insights cards — always first in body */}
+      {/* Quick insights */}
       <InsightsCards strengths={strengths} improvements={improvements} />
 
-      {/* Sections */}
+      {/* All sections */}
       <div ref={reportRef} className="space-y-6">
         <CompetitorAnalysisSection report={report} />
         <BlueOceanSection report={report} />

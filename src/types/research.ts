@@ -41,6 +41,9 @@ export interface CompetitorProfile {
 }
 
 export interface Step1CompetitorAnalysis {
+  /** The user's own business, analysed from their website */
+  userProfile?: CompetitorProfile;
+  /** 3-4 identified industry competitors */
   competitors: CompetitorProfile[];
   indirectCompetitors: {
     name: string;

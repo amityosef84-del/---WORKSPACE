@@ -44,7 +44,7 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
       {/* URL Field */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-zinc-200">
-          כתובת אתר המתחרה
+          כתובת האתר שלך
           <span className="text-red-400 mr-1">*</span>
         </label>
         <div className="relative">
@@ -52,7 +52,7 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="monday.com  /  https://notion.so"
+            placeholder="mycompany.com  /  https://www.mysite.co.il"
             disabled={isLoading}
             dir="ltr"
             className="w-full bg-white/[0.04] border rounded-xl px-4 py-3 text-white text-left
@@ -162,7 +162,7 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
         <textarea
           value={details}
           onChange={(e) => setDetails(e.target.value)}
-          placeholder="גיאוגרפיה, פלח שוק, שאלות ספציפיות..."
+          placeholder="תחום עיסוק, שוק יעד, מיקוד גיאוגרפי..."
           disabled={isLoading}
           rows={2}
           className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white
