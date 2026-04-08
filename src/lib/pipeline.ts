@@ -1,12 +1,16 @@
 /**
- * Research pipeline — 5 steps, optimised for speed and resilience.
+ * Research pipeline — 6 steps, optimised for speed and resilience.
  *
- * Execution plan:
+ * Full mode execution plan:
  *   Step 0  — scrape URL                          (no AI, 30s timeout)
  *   Step 1  — Competitor Analysis                 (Opus + thinking, 120s timeout)
  *   Steps 2+3 — Blue Ocean + Risk                 (Haiku, PARALLEL, 90s timeout each)
  *              ↳ each emits step_complete as soon as it individually resolves
  *   Step 4  — Executive Summary                   (Sonnet, 90s timeout)
+ *   Step 5  — Porter's Five Forces                (Haiku, 90s timeout)
+ *
+ * Focused mode: only the selected category's steps run; others are instantly
+ * marked skipped and emitted as step_complete with skipped:true.
  *
  * Every AI step uses runStepWithFallback — it NEVER throws, so a hung or
  * failed step returns partial data and the pipeline continues unblocked.
@@ -20,8 +24,9 @@ import {
 } from "./prompts";
 import type {
   ResearchReport,
-  Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis, Step4ExecutiveSummary, Step5PorterAnalysis,
-  SSEEvent, ResearchRequest,
+  Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis,
+  Step4ExecutiveSummary, Step5PorterAnalysis,
+  SSEEvent, ResearchRequest, FocusedCategory,
 } from "@/types/research";
 
 // ─── Fallback data (used when a step times out or errors) ─────────────────────
@@ -44,16 +49,6 @@ const FALLBACK_STEP3: Step3RiskAnalysis = {
   riskSummary: "הניתוח לא הושלם. מומלץ לנסות שנית לקבלת תוצאות מלאות.",
 };
 
-const FALLBACK_STEP5: Step5PorterAnalysis = {
-  rivalry:      { name: "תחרות בין מתחרים קיימים", analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  newEntrants:  { name: "איום של נכנסים חדשים",    analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  supplierPower:{ name: "כוח המיקוח של ספקים",     analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  buyerPower:   { name: "כוח המיקוח של קונים",     analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  substitutes:  { name: "איום של תחליפים",          analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  overallAttractivenessScore: 5,
-  strategicImplication: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
-};
-
 const FALLBACK_STEP4: Step4ExecutiveSummary = {
   audienceMap: [],
   competitorSquad: { titans: [], upAndComers: [] },
@@ -68,13 +63,39 @@ const FALLBACK_STEP4: Step4ExecutiveSummary = {
   executiveOneLiner: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const FALLBACK_STEP5: Step5PorterAnalysis = {
+  rivalry:      { name: "תחרות בין מתחרים קיימים", analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  newEntrants:  { name: "איום של נכנסים חדשים",    analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  supplierPower:{ name: "כוח המיקוח של ספקים",     analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  buyerPower:   { name: "כוח המיקוח של קונים",     analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  substitutes:  { name: "איום של תחליפים",          analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  overallAttractivenessScore: 5,
+  strategicImplication: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
+};
+
+// ─── Focused mode helpers ──────────────────────────────────────────────────────
+
+/**
+ * Returns true if the given pipeline step should be SKIPPED for a focused run.
+ * Steps 0 and 1 always run (scrape + base analysis needed for context).
+ */
+function shouldSkip(stepId: number, category?: FocusedCategory): boolean {
+  if (!category) return false;
+  switch (category) {
+    case "competitors": return stepId >= 2;                             // only 0+1
+    case "risk":        return stepId === 2 || stepId === 4 || stepId === 5; // 0+1+3
+    case "porters":     return stepId === 2 || stepId === 3 || stepId === 4; // 0+1+5
+    default:            return false;
+  }
+}
+
+// ─── SSE helpers ──────────────────────────────────────────────────────────────
 
 function encodeSSE(event: SSEEvent): string {
   return `data: ${JSON.stringify(event)}\n\n`;
 }
 
-// ─── Pipeline ────────────────────────────────────────────────────────────────
+// ─── Pipeline ─────────────────────────────────────────────────────────────────
 
 export async function runResearchPipeline(
   request: ResearchRequest,
@@ -84,10 +105,16 @@ export async function runResearchPipeline(
   const send = (event: SSEEvent) =>
     controller.enqueue(encoder.encode(encodeSSE(event)));
 
+  const { competitorUrl: url, additionalDetails: details } = request;
+  const mode = request.mode ?? "full";
+  const category = mode === "focused" ? request.focusedCategory : undefined;
+
   const reportId = crypto.randomUUID();
   const report: ResearchReport = {
     id: reportId,
     query: request,
+    mode,
+    focusedCategory: category,
     createdAt: Date.now(),
     steps: [
       { id: 0, nameEn: "סריקת נכסים דיגיטליים",           nameHe: "סריקת נכסים דיגיטליים",           status: "pending" },
@@ -99,7 +126,12 @@ export async function runResearchPipeline(
     ],
   };
 
-  const { competitorUrl: url, additionalDetails: details } = request;
+  /** Instantly mark a step as skipped and emit step_complete */
+  const skipStep = (id: 0 | 1 | 2 | 3 | 4 | 5) => {
+    report.steps[id].status = "completed";
+    report.steps[id].skipped = true;
+    send({ type: "step_complete", stepId: id, skipped: true });
+  };
 
   try {
     // ── Step 0: Scrape ───────────────────────────────────────────────────────
@@ -141,109 +173,131 @@ export async function runResearchPipeline(
 
     const step1Summary = JSON.stringify(step1, null, 2);
 
-    // ── Steps 2 + 3: PARALLEL — Haiku, 90s each ─────────────────────────────
-    // Critical: each step emits its own step_complete the moment it resolves,
-    // even while the other is still running. The UI updates immediately.
-    report.steps[2].status = "running";
-    report.steps[2].startedAt = Date.now();
-    report.steps[3].status = "running";
-    report.steps[3].startedAt = Date.now();
-    send({ type: "step_start", stepId: 2 });
-    send({ type: "step_start", stepId: 3 });
+    // ── Steps 2 + 3: PARALLEL — Haiku, 90s each (or skip) ───────────────────
+    const skip2 = shouldSkip(2, category);
+    const skip3 = shouldSkip(3, category);
 
-    console.log(`[pipeline] Steps 2+3 — parallel Haiku`);
+    if (skip2) {
+      skipStep(2);
+    } else {
+      report.steps[2].status = "running";
+      report.steps[2].startedAt = Date.now();
+      send({ type: "step_start", stepId: 2 });
+    }
 
-    // Wrap each step so it emits its own SSE event when done, independently
-    const step2Promise = runStepWithFallback(
-      () => runStructuredStep<Step2BlueOcean>(
-        STEP2_SYSTEM, step2UserPrompt(url, step1Summary), MODEL_HAIKU, false,
-      ),
-      FALLBACK_STEP2,
-      90_000,
-      "Step 2 (Blue Ocean)",
-    ).then(({ data, partial }) => {
-      report.step2 = data;
-      report.steps[2].status = "completed";
-      report.steps[2].completedAt = Date.now();
-      if (partial) report.steps[2].partial = true;
-      send({ type: "step_complete", stepId: 2, data, partial });
-      console.log(`[pipeline] Step 2 — done${partial ? " (partial)" : ""}`);
-      return { data, partial };
-    });
+    if (skip3) {
+      skipStep(3);
+    } else {
+      report.steps[3].status = "running";
+      report.steps[3].startedAt = Date.now();
+      send({ type: "step_start", stepId: 3 });
+    }
 
-    const step3Promise = runStepWithFallback(
-      () => runStructuredStep<Step3RiskAnalysis>(
-        STEP3_SYSTEM, step3UserPrompt(url, step1Summary), MODEL_HAIKU, false,
-      ),
-      FALLBACK_STEP3,
-      90_000,
-      "Step 3 (Risk)",
-    ).then(({ data, partial }) => {
-      report.step3 = data;
-      report.steps[3].status = "completed";
-      report.steps[3].completedAt = Date.now();
-      if (partial) report.steps[3].partial = true;
-      send({ type: "step_complete", stepId: 3, data, partial });
-      console.log(`[pipeline] Step 3 — done${partial ? " (partial)" : ""}`);
-      return { data, partial };
-    });
+    console.log(`[pipeline] Steps 2+3 — parallel Haiku (skip2=${skip2}, skip3=${skip3})`);
 
-    // Wait for both — each has already resolved independently above
+    const step2Promise = skip2
+      ? Promise.resolve({ data: FALLBACK_STEP2, partial: true })
+      : runStepWithFallback(
+          () => runStructuredStep<Step2BlueOcean>(
+            STEP2_SYSTEM, step2UserPrompt(url, step1Summary), MODEL_HAIKU, false,
+          ),
+          FALLBACK_STEP2,
+          90_000,
+          "Step 2 (Blue Ocean)",
+        ).then(({ data, partial }) => {
+          report.step2 = data;
+          report.steps[2].status = "completed";
+          report.steps[2].completedAt = Date.now();
+          if (partial) report.steps[2].partial = true;
+          send({ type: "step_complete", stepId: 2, data, partial });
+          console.log(`[pipeline] Step 2 — done${partial ? " (partial)" : ""}`);
+          return { data, partial };
+        });
+
+    const step3Promise = skip3
+      ? Promise.resolve({ data: FALLBACK_STEP3, partial: true })
+      : runStepWithFallback(
+          () => runStructuredStep<Step3RiskAnalysis>(
+            STEP3_SYSTEM, step3UserPrompt(url, step1Summary), MODEL_HAIKU, false,
+          ),
+          FALLBACK_STEP3,
+          90_000,
+          "Step 3 (Risk)",
+        ).then(({ data, partial }) => {
+          report.step3 = data;
+          report.steps[3].status = "completed";
+          report.steps[3].completedAt = Date.now();
+          if (partial) report.steps[3].partial = true;
+          send({ type: "step_complete", stepId: 3, data, partial });
+          console.log(`[pipeline] Step 3 — done${partial ? " (partial)" : ""}`);
+          return { data, partial };
+        });
+
     const [step2Result, step3Result] = await Promise.all([step2Promise, step3Promise]);
 
-    // ── Step 4: Executive Summary — Sonnet, 90s ──────────────────────────────
-    report.steps[4].status = "running";
-    report.steps[4].startedAt = Date.now();
-    send({ type: "step_start", stepId: 4 });
+    // ── Step 4: Executive Summary — Sonnet, 90s (or skip) ───────────────────
+    if (shouldSkip(4, category)) {
+      skipStep(4);
+    } else {
+      report.steps[4].status = "running";
+      report.steps[4].startedAt = Date.now();
+      send({ type: "step_start", stepId: 4 });
 
-    console.log(`[pipeline] Step 4 — Sonnet executive summary`);
-    const step2Summary = JSON.stringify(step2Result.data, null, 2);
-    const step3Summary = JSON.stringify(step3Result.data, null, 2);
+      console.log(`[pipeline] Step 4 — Sonnet executive summary`);
+      const step2Summary = JSON.stringify(step2Result.data, null, 2);
+      const step3Summary = JSON.stringify(step3Result.data, null, 2);
 
-    const { data: step4, partial: step4Partial } = await runStepWithFallback(
-      () => runStructuredStep<Step4ExecutiveSummary>(
-        STEP4_SYSTEM,
-        step4UserPrompt(url, step1Summary, step2Summary, step3Summary),
-        MODEL_SONNET,
-        false,
-      ),
-      FALLBACK_STEP4,
-      90_000,
-      "Step 4 (Executive Summary)",
-    );
+      const { data: step4, partial: step4Partial } = await runStepWithFallback(
+        () => runStructuredStep<Step4ExecutiveSummary>(
+          STEP4_SYSTEM,
+          step4UserPrompt(url, step1Summary, step2Summary, step3Summary),
+          MODEL_SONNET,
+          false,
+        ),
+        FALLBACK_STEP4,
+        90_000,
+        "Step 4 (Executive Summary)",
+      );
 
-    report.step4 = step4;
-    report.steps[4].status = "completed";
-    report.steps[4].completedAt = Date.now();
-    if (step4Partial) report.steps[4].partial = true;
-    send({ type: "step_complete", stepId: 4, data: step4, partial: step4Partial });
-    console.log(`[pipeline] Step 4 — done${step4Partial ? " (partial)" : ""}`);
+      report.step4 = step4;
+      report.steps[4].status = "completed";
+      report.steps[4].completedAt = Date.now();
+      if (step4Partial) report.steps[4].partial = true;
+      send({ type: "step_complete", stepId: 4, data: step4, partial: step4Partial });
+      console.log(`[pipeline] Step 4 — done${step4Partial ? " (partial)" : ""}`);
+    }
 
-    // ── Step 5: Porter's Five Forces — Haiku, 90s ────────────────────────────
-    report.steps[5].status = "running";
-    report.steps[5].startedAt = Date.now();
-    send({ type: "step_start", stepId: 5 });
+    // ── Step 5: Porter's Five Forces — Haiku, 90s (or skip) ─────────────────
+    if (shouldSkip(5, category)) {
+      skipStep(5);
+    } else {
+      report.steps[5].status = "running";
+      report.steps[5].startedAt = Date.now();
+      send({ type: "step_start", stepId: 5 });
 
-    console.log(`[pipeline] Step 5 — Haiku Porter's Five Forces`);
+      console.log(`[pipeline] Step 5 — Haiku Porter's Five Forces`);
+      const step2Summary = JSON.stringify(step2Result.data, null, 2);
+      const step3Summary = JSON.stringify(step3Result.data, null, 2);
 
-    const { data: step5, partial: step5Partial } = await runStepWithFallback(
-      () => runStructuredStep<Step5PorterAnalysis>(
-        STEP5_SYSTEM,
-        step5UserPrompt(url, step1Summary, step2Summary, step3Summary),
-        MODEL_HAIKU,
-        false,
-      ),
-      FALLBACK_STEP5,
-      90_000,
-      "Step 5 (Porter's Five Forces)",
-    );
+      const { data: step5, partial: step5Partial } = await runStepWithFallback(
+        () => runStructuredStep<Step5PorterAnalysis>(
+          STEP5_SYSTEM,
+          step5UserPrompt(url, step1Summary, step2Summary, step3Summary),
+          MODEL_HAIKU,
+          false,
+        ),
+        FALLBACK_STEP5,
+        90_000,
+        "Step 5 (Porter's Five Forces)",
+      );
 
-    report.step5 = step5;
-    report.steps[5].status = "completed";
-    report.steps[5].completedAt = Date.now();
-    if (step5Partial) report.steps[5].partial = true;
-    send({ type: "step_complete", stepId: 5, data: step5, partial: step5Partial });
-    console.log(`[pipeline] Step 5 — done${step5Partial ? " (partial)" : ""}`);
+      report.step5 = step5;
+      report.steps[5].status = "completed";
+      report.steps[5].completedAt = Date.now();
+      if (step5Partial) report.steps[5].partial = true;
+      send({ type: "step_complete", stepId: 5, data: step5, partial: step5Partial });
+      console.log(`[pipeline] Step 5 — done${step5Partial ? " (partial)" : ""}`);
+    }
 
     console.log(`[pipeline] ✅ Complete for ${url}`);
     send({ type: "pipeline_complete", report });

@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
         {
           competitorUrl,
           additionalDetails: body.additionalDetails?.trim(),
+          mode: body.mode,
+          focusedCategory: body.focusedCategory,
         },
         controller,
       );

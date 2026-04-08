@@ -23,8 +23,8 @@ export interface CompetitorProfile {
   };
   offer: {
     productsAndServices: string[];
-    keyFocusPoints: string[]; // quality, price, speed, etc.
-    pricingModels: string[]; // retainer, freemium, one-time, etc.
+    keyFocusPoints: string[];
+    pricingModels: string[];
     priceRange?: string;
   };
   marketingAndTraffic: {
@@ -55,8 +55,8 @@ export interface Step1CompetitorAnalysis {
 export interface BlueOceanOpportunity {
   unmetNeeds: {
     description: string;
-    evidenceSources: string[]; // reviews, forums, etc.
-    intensityScore: number; // 1-10
+    evidenceSources: string[];
+    intensityScore: number;
   }[];
   trendOpportunities: {
     trendName: string;
@@ -65,12 +65,12 @@ export interface BlueOceanOpportunity {
     howToLeverage: string;
   }[];
   whitespaceInsights: string;
-  opportunityScore: number; // 1-10, overall market opportunity
+  opportunityScore: number;
 }
 
 export interface Step2BlueOcean {
   analysis: BlueOceanOpportunity;
-  topOpportunity: string; // one-liner summary
+  topOpportunity: string;
 }
 
 // ─── Step 3: Risk & Threat Analysis ─────────────────────────────────────────
@@ -95,22 +95,14 @@ export interface Step3RiskAnalysis {
 
 export interface AudienceSegment {
   name: string;
-  size: string; // e.g. "large", "niche"
+  size: string;
   burningPainPoints: string[];
   willingnessToPay: "low" | "medium" | "high";
 }
 
 export interface CompetitorSquad {
-  titans: {
-    name: string;
-    strength: string;
-    weakness: string;
-  }[];
-  upAndComers: {
-    name: string;
-    growthDriver: string;
-    threat: string;
-  }[];
+  titans: { name: string; strength: string; weakness: string }[];
+  upAndComers: { name: string; growthDriver: string; threat: string }[];
 }
 
 export interface ERRCGrid {
@@ -118,7 +110,7 @@ export interface ERRCGrid {
   reduce: string[];
   raise: string[];
   create: string[];
-  blueOceanStatement: string; // 2-sentence synthesis
+  blueOceanStatement: string;
 }
 
 export interface SWOTOpportunityMatrix {
@@ -126,8 +118,8 @@ export interface SWOTOpportunityMatrix {
   weaknesses: string[];
   opportunities: string[];
   threats: string[];
-  actNow: string[]; // immediate actions
-  avoid: string[]; // things to avoid
+  actNow: string[];
+  avoid: string[];
 }
 
 export interface Step4ExecutiveSummary {
@@ -141,10 +133,10 @@ export interface Step4ExecutiveSummary {
 // ─── Step 5: Porter's Five Forces ────────────────────────────────────────────
 
 export interface PorterForce {
-  name: string;         // Hebrew display name
-  analysis: string;     // Short analysis paragraph
-  score: number;        // 1-10 attractiveness (10 = very favorable for market entry)
-  keyFactors: string[]; // 2-3 bullet points
+  name: string;
+  analysis: string;
+  score: number;        // 1-10 attractiveness (10 = very favorable)
+  keyFactors: string[];
 }
 
 export interface Step5PorterAnalysis {
@@ -153,9 +145,14 @@ export interface Step5PorterAnalysis {
   supplierPower: PorterForce;
   buyerPower: PorterForce;
   substitutes: PorterForce;
-  overallAttractivenessScore: number; // 1-10
-  strategicImplication: string;       // One-paragraph strategic insight
+  overallAttractivenessScore: number;
+  strategicImplication: string;
 }
+
+// ─── Research Mode (Selective Research) ──────────────────────────────────────
+
+export type ResearchMode = "full" | "focused";
+export type FocusedCategory = "competitors" | "porters" | "risk";
 
 // ─── Pipeline State ───────────────────────────────────────────────────────────
 
@@ -169,8 +166,10 @@ export interface PipelineStep {
   startedAt?: number;
   completedAt?: number;
   error?: string;
-  /** true when the step completed via timeout/error fallback rather than real AI output */
+  /** true when completed via timeout/error fallback */
   partial?: boolean;
+  /** true when this step was intentionally skipped (focused mode) */
+  skipped?: boolean;
 }
 
 export interface ResearchReport {
@@ -179,6 +178,8 @@ export interface ResearchReport {
     competitorUrl: string;
     additionalDetails?: string;
   };
+  mode?: ResearchMode;
+  focusedCategory?: FocusedCategory;
   createdAt: number;
   steps: [PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep];
   step1?: Step1CompetitorAnalysis;
@@ -204,8 +205,9 @@ export interface SSEEvent {
   data?: Step1CompetitorAnalysis | Step2BlueOcean | Step3RiskAnalysis | Step4ExecutiveSummary | Step5PorterAnalysis;
   error?: string;
   report?: ResearchReport;
-  /** true when the step completed via fallback (timeout / AI error) */
   partial?: boolean;
+  /** true when step was skipped due to focused mode */
+  skipped?: boolean;
 }
 
 // ─── API Request/Response ─────────────────────────────────────────────────────
@@ -213,4 +215,6 @@ export interface SSEEvent {
 export interface ResearchRequest {
   competitorUrl: string;
   additionalDetails?: string;
+  mode?: ResearchMode;
+  focusedCategory?: FocusedCategory;
 }
