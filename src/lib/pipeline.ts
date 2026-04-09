@@ -19,13 +19,13 @@
 import { runStructuredStep, runStepWithFallback, MODEL_OPUS, MODEL_SONNET, MODEL_HAIKU } from "./anthropic";
 import { scrapeUrl, scrapeSucceeded, formatScrapedContent } from "./scraper";
 import {
-  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM, STEP5_SYSTEM,
-  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt, step5UserPrompt,
+  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM, STEP5_SYSTEM, STEP6_SYSTEM,
+  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt, step5UserPrompt, step6UserPrompt,
 } from "./prompts";
 import type {
   ResearchReport,
   Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis,
-  Step4ExecutiveSummary, Step5PorterAnalysis,
+  Step4ExecutiveSummary, Step5PorterAnalysis, Step6MarketingGapAnalysis,
   SSEEvent, ResearchRequest, FocusedCategory,
 } from "@/types/research";
 
@@ -73,6 +73,14 @@ const FALLBACK_STEP5: Step5PorterAnalysis = {
   strategicImplication: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
 };
 
+const FALLBACK_STEP6: Step6MarketingGapAnalysis = {
+  channelGaps: [],
+  lowHangingFruits: [],
+  biggestGap: "הניתוח לא הושלם. מומלץ לנסות שנית לקבלת תוצאות מלאות.",
+  biggestOpportunity: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
+  overallGapScore: 5,
+};
+
 // ─── Focused mode helpers ──────────────────────────────────────────────────────
 
 /**
@@ -82,9 +90,10 @@ const FALLBACK_STEP5: Step5PorterAnalysis = {
 function shouldSkip(stepId: number, category?: FocusedCategory): boolean {
   if (!category) return false;
   switch (category) {
-    case "competitors": return stepId >= 2;                             // only 0+1
-    case "risk":        return stepId === 2 || stepId === 4 || stepId === 5; // 0+1+3
-    case "porters":     return stepId === 2 || stepId === 3 || stepId === 4; // 0+1+5
+    case "competitors": return stepId >= 2;                                        // only 0+1
+    case "risk":        return stepId === 2 || stepId === 4 || stepId === 5 || stepId === 6; // 0+1+3
+    case "porters":     return stepId === 2 || stepId === 3 || stepId === 4 || stepId === 6; // 0+1+5
+    case "marketing":   return stepId === 2 || stepId === 3 || stepId === 4 || stepId === 5; // 0+1+6
     default:            return false;
   }
 }
@@ -123,11 +132,12 @@ export async function runResearchPipeline(
       { id: 3, nameEn: "ניתוח סיכונים ואיומים",             nameHe: "ניתוח סיכונים ואיומים",             status: "pending" },
       { id: 4, nameEn: "סיכום מנהלים ותובנות",              nameHe: "סיכום מנהלים ותובנות",              status: "pending" },
       { id: 5, nameEn: "חמשת הכוחות של פורטר",             nameHe: "חמשת הכוחות של פורטר",             status: "pending" },
+      { id: 6, nameEn: "ניתוח פערים שיווקי",               nameHe: "ניתוח פערים שיווקי",               status: "pending" },
     ],
   };
 
   /** Instantly mark a step as skipped and emit step_complete */
-  const skipStep = (id: 0 | 1 | 2 | 3 | 4 | 5) => {
+  const skipStep = (id: 0 | 1 | 2 | 3 | 4 | 5 | 6) => {
     report.steps[id].status = "completed";
     report.steps[id].skipped = true;
     send({ type: "step_complete", stepId: id, skipped: true });
@@ -297,6 +307,36 @@ export async function runResearchPipeline(
       if (step5Partial) report.steps[5].partial = true;
       send({ type: "step_complete", stepId: 5, data: step5, partial: step5Partial });
       console.log(`[pipeline] Step 5 — done${step5Partial ? " (partial)" : ""}`);
+    }
+
+    // ── Step 6: Marketing Gap Analysis — Haiku, 90s (or skip) ───────────────
+    if (shouldSkip(6, category)) {
+      skipStep(6);
+    } else {
+      report.steps[6].status = "running";
+      report.steps[6].startedAt = Date.now();
+      send({ type: "step_start", stepId: 6 });
+
+      console.log(`[pipeline] Step 6 — Haiku Marketing Gap Analysis`);
+
+      const { data: step6, partial: step6Partial } = await runStepWithFallback(
+        () => runStructuredStep<Step6MarketingGapAnalysis>(
+          STEP6_SYSTEM,
+          step6UserPrompt(url, step1Summary),
+          MODEL_HAIKU,
+          false,
+        ),
+        FALLBACK_STEP6,
+        90_000,
+        "Step 6 (Marketing Gap)",
+      );
+
+      report.step6 = step6;
+      report.steps[6].status = "completed";
+      report.steps[6].completedAt = Date.now();
+      if (step6Partial) report.steps[6].partial = true;
+      send({ type: "step_complete", stepId: 6, data: step6, partial: step6Partial });
+      console.log(`[pipeline] Step 6 — done${step6Partial ? " (partial)" : ""}`);
     }
 
     console.log(`[pipeline] ✅ Complete for ${url}`);

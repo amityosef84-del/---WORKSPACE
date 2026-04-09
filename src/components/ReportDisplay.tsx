@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ResearchReport, CompetitorProfile } from "@/types/research";
+import type { ResearchReport, CompetitorProfile, Step6MarketingGapAnalysis } from "@/types/research";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const G  = "#D4AF37";
@@ -90,6 +90,10 @@ function computeScore(report: ResearchReport): { score: number; strengths: strin
   if (report.step3) {
     const adj: Record<string, number> = { low: 5, medium: 0, high: -10, critical: -18 };
     score += adj[report.step3.overallRiskLevel] ?? 0;
+  }
+  if (report.step6) {
+    // High untapped marketing opportunity nudges score up (potential upside)
+    score += Math.round((report.step6.overallGapScore - 5) * 0.8); // ±4
   }
   score = Math.max(5, Math.min(97, Math.round(score)));
   const strengths    = report.step4?.swotMatrix.strengths.slice(0, 3)   ?? [];
@@ -643,6 +647,242 @@ function PortersSection({ report }: { report: ResearchReport }) {
   );
 }
 
+// ─── Step 6: Marketing Gap Analysis ──────────────────────────────────────────
+
+const PRESENCE_LABEL: Record<string, string> = {
+  strong:   "חזק",
+  moderate: "בינוני",
+  weak:     "חלש",
+  none:     "נעדר",
+};
+
+const PRESENCE_COLOR: Record<string, string> = {
+  strong:   "#6ee7b7",
+  moderate: "#fbbf24",
+  weak:     "#fb923c",
+  none:     "#f87171",
+};
+
+const GAP_COLOR: Record<string, string> = {
+  high:   G,
+  medium: "#fbbf24",
+  low:    "rgba(255,255,255,0.3)",
+};
+
+const GAP_LABEL: Record<string, string> = {
+  high:   "פער גבוה ⚡",
+  medium: "פוטנציאל",
+  low:    "מינימלי",
+};
+
+const EFFORT_LABEL: Record<string, string> = {
+  low:    "מאמץ נמוך",
+  medium: "מאמץ בינוני",
+  high:   "מאמץ גבוה",
+};
+
+const IMPACT_LABEL: Record<string, string> = {
+  high:   "השפעה גבוהה",
+  medium: "השפעה בינונית",
+  low:    "השפעה נמוכה",
+};
+
+function PresenceDot({ level }: { level: string }) {
+  const color = PRESENCE_COLOR[level] ?? DT;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-semibold"
+          style={{ color }}>
+      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+      {PRESENCE_LABEL[level] ?? level}
+    </span>
+  );
+}
+
+function MarketingGapSection({ report }: { report: ResearchReport }) {
+  const data: Step6MarketingGapAnalysis | undefined = report.step6;
+  if (!data) return null;
+
+  const highGaps   = data.channelGaps.filter((c) => c.gapLevel === "high");
+  const otherGaps  = data.channelGaps.filter((c) => c.gapLevel !== "high");
+
+  return (
+    <SectionCard icon="📊" title="שלב 6: ניתוח פערים שיווקי — אני מול המתחרים">
+
+      {/* Big Gap + Opportunity callout */}
+      {(data.biggestGap || data.biggestOpportunity) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {data.biggestGap && (
+            <div className="rounded-xl p-4 space-y-1" style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)" }}>
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#f87171" }}>הפער הגדול ביותר</p>
+              <p className="text-sm text-zinc-200 leading-relaxed">{data.biggestGap}</p>
+            </div>
+          )}
+          {data.biggestOpportunity && (
+            <div className="rounded-xl p-4 space-y-1" style={{ background: GM, border: "1px solid " + GB }}>
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: G }}>הזדמנות גדולה לניצול</p>
+              <p className="text-sm text-zinc-200 leading-relaxed">{data.biggestOpportunity}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Overall gap score */}
+      {data.overallGapScore != null && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-zinc-400">ציון פוטנציאל שיווקי לא מנוצל:</span>
+          <div className="flex gap-1">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="w-3.5 h-3.5 rounded-sm transition-colors"
+                   style={{ background: i < data.overallGapScore ? G : SB }} />
+            ))}
+          </div>
+          <span className="font-bold text-sm" style={{ color: G }}>{data.overallGapScore}/10</span>
+        </div>
+      )}
+
+      {/* Gap comparison table */}
+      {data.channelGaps.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold text-white mb-3">השוואת ערוצי שיווק — אני מול המתחרים</p>
+
+          {/* High-gap channels first */}
+          {highGaps.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: G }}>
+                ⚡ ערוצים עם פער גבוה — הזדמנויות מיידיות
+              </p>
+              <div className="space-y-2">
+                {highGaps.map((gap, i) => (
+                  <div key={i} className="rounded-xl p-4 space-y-2"
+                       style={{ background: GM, border: "1px solid " + GB }}>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-bold text-white text-sm">{gap.channel}</span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: "rgba(212,175,55,0.2)", color: GAP_COLOR[gap.gapLevel] ?? DT }}>
+                        {GAP_LABEL[gap.gapLevel]}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-zinc-500">העסק שלך</p>
+                        <PresenceDot level={gap.userPresence} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-xs text-zinc-500">המתחרים</p>
+                        <PresenceDot level={gap.competitorPresence} />
+                      </div>
+                    </div>
+                    {gap.insight && (
+                      <p className="text-xs text-zinc-300 leading-relaxed border-t pt-2"
+                         style={{ borderColor: "rgba(212,175,55,0.2)" }}>
+                        {gap.insight}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Other channels table */}
+          {otherGaps.length > 0 && (
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: DT }}>
+                שאר הערוצים
+              </p>
+              <div className="rounded-xl overflow-hidden" style={{ border: "1px solid " + SB }}>
+                {/* Header */}
+                <div className="grid grid-cols-4 gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wide"
+                     style={{ background: "rgba(255,255,255,0.04)", color: DT }}>
+                  <span>ערוץ</span>
+                  <span>אני</span>
+                  <span>מתחרים</span>
+                  <span>פער</span>
+                </div>
+                {otherGaps.map((gap, i) => (
+                  <div key={i}
+                       className="grid grid-cols-4 gap-2 px-4 py-3 text-xs items-center"
+                       style={{
+                         borderTop: "1px solid " + SB,
+                         background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)",
+                       }}>
+                    <span className="font-medium text-zinc-300">{gap.channel}</span>
+                    <PresenceDot level={gap.userPresence} />
+                    <PresenceDot level={gap.competitorPresence} />
+                    <span className="font-semibold text-xs"
+                          style={{ color: GAP_COLOR[gap.gapLevel] ?? DT }}>
+                      {GAP_LABEL[gap.gapLevel]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Low-hanging fruit */}
+      {data.lowHangingFruits.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold text-white mb-3">
+            🍋 Low Hanging Fruit — פעולות מיידיות לביצוע
+          </p>
+          <div className="space-y-3">
+            {data.lowHangingFruits.map((fruit, i) => (
+              <div key={i} className="rounded-xl p-4 space-y-2"
+                   style={{ background: S, border: "1px solid " + GB }}>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs font-black"
+                       style={{ background: GM, color: G, border: "1px solid " + GB }}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-white text-sm leading-snug">{fruit.action}</p>
+                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{fruit.reason}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap pr-9">
+                  <Tag label={fruit.channel} color="gold" />
+                  <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{
+                          background: fruit.effort === "low"
+                            ? "rgba(52,211,153,0.1)"
+                            : fruit.effort === "medium"
+                            ? "rgba(251,191,36,0.1)"
+                            : "rgba(239,68,68,0.1)",
+                          color: fruit.effort === "low"
+                            ? "#6ee7b7"
+                            : fruit.effort === "medium"
+                            ? "#fbbf24"
+                            : "#f87171",
+                        }}>
+                    {EFFORT_LABEL[fruit.effort] ?? fruit.effort}
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{
+                          background: fruit.impact === "high"
+                            ? GM
+                            : fruit.impact === "medium"
+                            ? "rgba(251,191,36,0.1)"
+                            : "rgba(255,255,255,0.04)",
+                          color: fruit.impact === "high"
+                            ? G
+                            : fruit.impact === "medium"
+                            ? "#fbbf24"
+                            : DT,
+                        }}>
+                    {IMPACT_LABEL[fruit.impact] ?? fruit.impact}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
 interface Props { report: ResearchReport; }
@@ -705,6 +945,7 @@ export default function ReportDisplay({ report }: Props) {
         <RiskSection report={report} />
         <ExecutiveSummarySection report={report} />
         <PortersSection report={report} />
+        <MarketingGapSection report={report} />
       </div>
     </div>
   );

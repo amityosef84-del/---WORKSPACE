@@ -314,6 +314,88 @@ ${HEBREW_MANDATE}
 }
 `.trim();
 
+// ─── Step 6: ניתוח פערים שיווקי — Marketing Intelligence & Gap Analysis ────────
+
+export const STEP6_SYSTEM = `
+אתה מומחה שיווק דיגיטלי ואסטרטגיית תוכן. תפקידך לנתח את **הפערים השיווקיים**
+בין עסק המשתמש לבין מתחריו — ולהמליץ על פעולות מיידיות וממוקדות.
+
+נתח את הערוצים הבאים לכל צד (עסק המשתמש + מתחרים):
+Google Ads (PPC), SEO אורגני, Instagram, TikTok, Facebook Ads, LinkedIn, YouTube,
+Email/ניוזלטר, Lead Magnets (מגנטי לידים), WhatsApp, בלוג/תוכן.
+
+לכל ערוץ — קבע רמת נוכחות: "strong" / "moderate" / "weak" / "none".
+רמת פער (gapLevel): "high" = הזדמנות ענקית, "medium" = פוטנציאל, "low" = מינימלי.
+
+${HEBREW_MANDATE}
+
+החזר אך ורק JSON תקין ללא תגיות markdown:
+{
+  "channelGaps": [
+    {
+      "channel": "Google Ads",
+      "userPresence": "none",
+      "competitorPresence": "strong",
+      "gapLevel": "high",
+      "insight": "המתחרים מוציאים תקציב משמעותי על גוגל אדס — אתה כמעט נעדר"
+    },
+    {
+      "channel": "SEO אורגני",
+      "userPresence": "moderate",
+      "competitorPresence": "strong",
+      "gapLevel": "medium",
+      "insight": "יש לך בסיס SEO, אך המתחרים מובילים בתוצאות חיפוש"
+    }
+  ],
+  "lowHangingFruits": [
+    {
+      "action": "הפעל קמפיין Google Ads ממוקד על מילות מפתח של הנישה",
+      "channel": "Google Ads",
+      "effort": "low",
+      "impact": "high",
+      "reason": "המתחרים הוכיחו שיש ביקוש — אתה מפספס לידים מוכנים לרכישה"
+    },
+    {
+      "action": "פתח חשבון TikTok עסקי ופרסם 3 סרטונים שבועיים",
+      "channel": "TikTok",
+      "effort": "medium",
+      "impact": "high",
+      "reason": "שום מתחרה לא פעיל שם — הזדמנות לכבוש קהל צעיר ראשון"
+    },
+    {
+      "action": "צור Lead Magnet (מדריך חינמי / מחשבון / רשימת תיוג) באתר",
+      "channel": "Lead Magnets",
+      "effort": "medium",
+      "impact": "high",
+      "reason": "המתחרים מייצרים לידים בטפסים — אתה מאבד מבקרים ללא לכידה"
+    }
+  ],
+  "biggestGap": "משפט אחד — הפער הגדול ביותר בין עסק המשתמש למתחרים בתחום השיווק",
+  "biggestOpportunity": "משפט אחד — ההזדמנות השיווקית הגדולה ביותר שאף מתחרה לא מנצל",
+  "overallGapScore": 8
+}
+`.trim();
+
+export function step6UserPrompt(userUrl: string, step1Data: string): string {
+  return `
+אתר העסק של המשתמש: **${userUrl}**
+
+--- ניתוח העסק מול השוק (שלב 1 — כולל פרופיל המשתמש ופרופילי המתחרים) ---
+${step1Data}
+
+משימתך — ניתוח שיווקי השוואתי:
+1. **בחן את האתר של המשתמש**: האם יש פיקסלים של פרסום (Google Tag Manager, Meta Pixel)?
+   האם יש טפסי לידים? ניוזלטר? בלוג עם תוכן? קישורים לרשתות חברתיות? קופונים? צ'אט חי?
+2. **נתח את המתחרים**: בהתבסס על "distributionChannels", "marketingHooks", "contentAngles"
+   מהשלב 1 — באילו ערוצים שיווקיים המתחרים חזקים?
+3. **זהה פערים**: היכן המתחרים מנצחים שיווקית, אבל המשתמש נעדר או חלש?
+4. **הצע 3 פעולות מיידיות** (Low Hanging Fruit) שהמשתמש יכול לבצע בשבועות הקרובים
+
+כתוב את ה-insight של כל ערוץ בעברית — בהיר, ישיר, ממוקד.
+כל הפלט בעברית בלבד.
+  `.trim();
+}
+
 export function step5UserPrompt(
   userUrl: string,
   step1Data: string,

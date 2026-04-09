@@ -7,7 +7,7 @@ import ReportDisplay from "@/components/ReportDisplay";
 import type {
   ResearchReport, PipelineStep, SSEEvent,
   Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis,
-  Step4ExecutiveSummary, Step5PorterAnalysis,
+  Step4ExecutiveSummary, Step5PorterAnalysis, Step6MarketingGapAnalysis,
   ResearchMode, FocusedCategory,
 } from "@/types/research";
 
@@ -16,12 +16,13 @@ const GOLD_MUTED  = "rgba(212,175,55,0.12)";
 const GOLD_BORDER = "rgba(212,175,55,0.22)";
 
 const ALL_STEPS: PipelineStep[] = [
-  { id: 0, nameEn: "Digital Asset Scan",    nameHe: "סריקת נכסים דיגיטליים",         status: "pending" },
-  { id: 1, nameEn: "Competitor Analysis",   nameHe: "ניתוח מתחרים מעמיק",             status: "pending" },
-  { id: 2, nameEn: "Blue Ocean",            nameHe: "אוקיינוס כחול (הזדמנויות)",      status: "pending" },
-  { id: 3, nameEn: "Risk Analysis",         nameHe: "ניתוח סיכונים ואיומים",          status: "pending" },
-  { id: 4, nameEn: "Executive Summary",     nameHe: "סיכום מנהלים ותובנות",           status: "pending" },
-  { id: 5, nameEn: "Porter's Five Forces",  nameHe: "חמשת הכוחות של פורטר",          status: "pending" },
+  { id: 0, nameEn: "Digital Asset Scan",        nameHe: "סריקת נכסים דיגיטליים",         status: "pending" },
+  { id: 1, nameEn: "Competitor Analysis",       nameHe: "ניתוח מתחרים מעמיק",             status: "pending" },
+  { id: 2, nameEn: "Blue Ocean",                nameHe: "אוקיינוס כחול (הזדמנויות)",      status: "pending" },
+  { id: 3, nameEn: "Risk Analysis",             nameHe: "ניתוח סיכונים ואיומים",          status: "pending" },
+  { id: 4, nameEn: "Executive Summary",         nameHe: "סיכום מנהלים ותובנות",           status: "pending" },
+  { id: 5, nameEn: "Porter's Five Forces",      nameHe: "חמשת הכוחות של פורטר",          status: "pending" },
+  { id: 6, nameEn: "Marketing Gap Analysis",    nameHe: "ניתוח פערים שיווקי",             status: "pending" },
 ];
 
 type AppState = "idle" | "running" | "complete" | "error";
@@ -34,7 +35,7 @@ export default function HomePage() {
   const [scrapeWarning, setScrapeWarning] = useState<string | null>(null);
   const partialReport = useRef<Partial<ResearchReport>>({});
 
-  const updateStep = useCallback((id: 0|1|2|3|4|5, patch: Partial<PipelineStep>) => {
+  const updateStep = useCallback((id: 0|1|2|3|4|5|6, patch: Partial<PipelineStep>) => {
     setSteps((prev) => prev.map((s) => s.id === id ? { ...s, ...patch } : s));
   }, []);
 
@@ -54,6 +55,7 @@ export default function HomePage() {
         if (event.stepId === 3) partialReport.current.step3 = event.data as Step3RiskAnalysis;
         if (event.stepId === 4) partialReport.current.step4 = event.data as Step4ExecutiveSummary;
         if (event.stepId === 5) partialReport.current.step5 = event.data as Step5PorterAnalysis;
+        if (event.stepId === 6) partialReport.current.step6 = event.data as Step6MarketingGapAnalysis;
         break;
       case "step_error":
         updateStep(event.stepId!, { status: "error", error: event.error });
@@ -224,7 +226,7 @@ export default function HomePage() {
             {appState === "idle" && (
               <div className="space-y-2">
                 <p className="text-xs font-bold uppercase tracking-widest text-center" style={{ color: GOLD, letterSpacing: "0.18em" }}>
-                  6 שלבי AI
+                  7 שלבי AI
                 </p>
                 {ALL_STEPS.map((step) => (
                   <div key={step.id} className="flex items-center gap-3 text-sm rounded-xl px-4 py-2.5"

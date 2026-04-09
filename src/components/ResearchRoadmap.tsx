@@ -8,7 +8,7 @@ import type { PipelineStep } from "@/types/research";
 interface MicroTask { label: string; }
 
 interface StageConfig {
-  id: 0 | 1 | 2 | 3 | 4 | 5;
+  id: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   title: string;
   subtitle: string;
   icon: string;
@@ -90,6 +90,18 @@ const STAGES: StageConfig[] = [
       { label: "מחשב ציון אטרקטיביות כוללי" },
     ],
   },
+  {
+    id: 6, icon: "📊",
+    title: "ניתוח פערים שיווקי",
+    subtitle: "Google Ads, Social, Lead Magnets",
+    estimatedSeconds: 45,
+    microTasks: [
+      { label: "סורק נוכחות שיווקית של המתחרים" },
+      { label: "ממפה ערוצי שיווק פעילים" },
+      { label: "מזהה פערים ביחס לעסק שלך" },
+      { label: "מגבש המלצות מיידיות לפעולה" },
+    ],
+  },
 ];
 
 const EFFECTIVE_TOTAL_SECONDS =
@@ -97,7 +109,8 @@ const EFFECTIVE_TOTAL_SECONDS =
   STAGES[1].estimatedSeconds +
   Math.max(STAGES[2].estimatedSeconds, STAGES[3].estimatedSeconds) +
   STAGES[4].estimatedSeconds +
-  STAGES[5].estimatedSeconds;
+  STAGES[5].estimatedSeconds +
+  STAGES[6].estimatedSeconds;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const GOLD        = "#D4AF37";
