@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ResearchReport, CompetitorProfile, Step6MarketingGapAnalysis } from "@/types/research";
+import type { ResearchReport, CompetitorProfile, Step6MarketingGapAnalysis, Step7ContentAssets } from "@/types/research";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const G  = "#D4AF37";
@@ -647,6 +647,210 @@ function PortersSection({ report }: { report: ResearchReport }) {
   );
 }
 
+// ─── Copy to Clipboard Button ─────────────────────────────────────────────────
+
+function CopyButton({ text, label = "העתק" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: select the text manually
+    }
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all shrink-0"
+      style={{
+        background: copied ? GM : "rgba(255,255,255,0.05)",
+        color: copied ? G : "rgba(255,255,255,0.5)",
+        border: `1px solid ${copied ? GB : "rgba(255,255,255,0.1)"}`,
+      }}
+    >
+      {copied ? (
+        <>
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          הועתק
+        </>
+      ) : (
+        <>
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          {label}
+        </>
+      )}
+    </button>
+  );
+}
+
+// ─── Asset Card wrapper ────────────────────────────────────────────────────────
+
+function AssetCard({ badge, badgeColor = G, children, copyText }: {
+  badge: string;
+  badgeColor?: string;
+  children: React.ReactNode;
+  copyText: string;
+}) {
+  return (
+    <div className="rounded-xl p-5 space-y-4"
+         style={{ background: "rgba(0,0,0,0.5)", border: `1px solid ${GB}` }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
+              style={{ background: GM, color: badgeColor, border: `1px solid ${GB}` }}>
+          {badge}
+        </span>
+        <CopyButton text={copyText} />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Step 7: Strategic Content Assets ─────────────────────────────────────────
+
+const PLATFORM_ICON: Record<string, string> = {
+  instagram: "📸", tiktok: "🎵", facebook: "👥", linkedin: "💼",
+  google: "🔍", meta: "📣", both: "📣",
+};
+const FORMAT_LABEL: Record<string, string> = {
+  reel: "ריל", post: "פוסט", carousel: "קרוסלה", story: "סטורי",
+};
+
+function ContentAssetsSection({ report }: { report: ResearchReport }) {
+  const data: Step7ContentAssets | undefined = report.step7;
+  if (!data) return null;
+
+  const adCopyText = [
+    `📢 ${data.adCopy.headline}`,
+    `${data.adCopy.subheadline}`,
+    ``,
+    data.adCopy.bodyText,
+    ``,
+    `👉 ${data.adCopy.callToAction}`,
+  ].join("\n");
+
+  const headlineText = [
+    data.landingPageHeadline.main,
+    data.landingPageHeadline.sub,
+    `→ ${data.landingPageHeadline.cta}`,
+  ].join("\n");
+
+  return (
+    <SectionCard icon="✍️" title="שלב 7: תוכן אסטרטגי מוכן לשימוש">
+
+      {/* Strategic angle callout */}
+      {data.strategicAngle && (
+        <div className="rounded-xl p-4 flex items-start gap-3"
+             style={{ background: GM, border: `1px solid ${GB}` }}>
+          <span className="text-xl shrink-0 mt-0.5">🎯</span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: G }}>
+              הזווית התחרותית שלך
+            </p>
+            <p className="text-white font-semibold text-sm leading-relaxed">{data.strategicAngle}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Ad Copy */}
+      {data.adCopy && (
+        <AssetCard
+          badge={`📣 Ad Copy — ${data.adCopy.platform === "google" ? "Google Ads" : data.adCopy.platform === "meta" ? "Meta Ads" : "Google & Meta"}`}
+          copyText={adCopyText}
+        >
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">כותרת</p>
+              <p className="text-lg font-black text-white leading-tight">{data.adCopy.headline}</p>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">תת-כותרת</p>
+              <p className="text-sm font-semibold text-zinc-200">{data.adCopy.subheadline}</p>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">גוף הפרסומת</p>
+              <p className="text-sm text-zinc-300 leading-relaxed">{data.adCopy.bodyText}</p>
+            </div>
+            <div className="pt-1">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold"
+                    style={{ background: G, color: "#000" }}>
+                {data.adCopy.callToAction}
+              </span>
+            </div>
+          </div>
+        </AssetCard>
+      )}
+
+      {/* Landing Page Headline */}
+      {data.landingPageHeadline && (
+        <AssetCard badge="🌐 כותרת דף נחיתה" copyText={headlineText}>
+          <div className="space-y-3 text-center py-2">
+            <p className="text-2xl font-black text-white leading-tight">{data.landingPageHeadline.main}</p>
+            <p className="text-sm text-zinc-400 leading-relaxed max-w-md mx-auto">{data.landingPageHeadline.sub}</p>
+            <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
+                  style={{ background: `linear-gradient(135deg, ${G} 0%, ${GD} 100%)`, color: "#000",
+                           boxShadow: `0 4px 20px ${G}40` }}>
+              {data.landingPageHeadline.cta}
+            </span>
+          </div>
+        </AssetCard>
+      )}
+
+      {/* Social Posts */}
+      {data.socialPosts.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold text-white mb-3">
+            📱 3 פוסטים/ריילז ויראליים — מוכנים לפרסום
+          </p>
+          <div className="space-y-3">
+            {data.socialPosts.map((post, i) => {
+              const postText = [
+                post.hook,
+                ``,
+                post.content,
+                ``,
+                `#${post.platform} #${post.format}`,
+              ].join("\n");
+              const platformIcon = PLATFORM_ICON[post.platform] ?? "📱";
+              const formatLabel  = FORMAT_LABEL[post.format]   ?? post.format;
+              return (
+                <AssetCard
+                  key={i}
+                  badge={`${platformIcon} ${post.platform.charAt(0).toUpperCase() + post.platform.slice(1)} — ${formatLabel}`}
+                  copyText={postText}
+                >
+                  <div className="space-y-3">
+                    {post.concept && (
+                      <p className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                         style={{ background: "rgba(212,175,55,0.08)", color: G }}>
+                        💡 {post.concept}
+                      </p>
+                    )}
+                    <div>
+                      <p className="text-xs text-zinc-500 mb-1">שורת פתיחה (Hook)</p>
+                      <p className="text-base font-bold text-white leading-snug">{post.hook}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-zinc-500 mb-1">סקריפט</p>
+                      <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{post.content}</p>
+                    </div>
+                  </div>
+                </AssetCard>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 // ─── Step 6: Marketing Gap Analysis ──────────────────────────────────────────
 
 const PRESENCE_LABEL: Record<string, string> = {
@@ -946,6 +1150,7 @@ export default function ReportDisplay({ report }: Props) {
         <ExecutiveSummarySection report={report} />
         <PortersSection report={report} />
         <MarketingGapSection report={report} />
+        <ContentAssetsSection report={report} />
       </div>
     </div>
   );

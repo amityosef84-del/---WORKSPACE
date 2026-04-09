@@ -11,9 +11,10 @@ interface Props {
 const EXAMPLE_URLS = ["monday.com", "notion.so", "hubspot.com", "wix.com"];
 
 const FOCUSED_OPTIONS: { id: FocusedCategory; label: string; icon: string; desc: string }[] = [
-  { id: "competitors", label: "מתחרים",   icon: "🏆", desc: "ניתוח עמוק של שחקני השוק" },
-  { id: "risk",        label: "סיכונים",   icon: "⚡", desc: "איומים ואסטרטגיות מיתון" },
-  { id: "porters",     label: "5 כוחות",   icon: "🏛️", desc: "מודל פורטר ואטרקטיביות" },
+  { id: "competitors", label: "מתחרים",        icon: "🏆", desc: "ניתוח עמוק של שחקני השוק" },
+  { id: "risk",        label: "סיכונים",        icon: "⚡", desc: "איומים ואסטרטגיות מיתון" },
+  { id: "porters",     label: "5 כוחות",        icon: "🏛️", desc: "מודל פורטר ואטרקטיביות" },
+  { id: "content",     label: "תוכן אסטרטגי",  icon: "✍️", desc: "פרסומות, פוסטים, כותרות" },
 ];
 
 // Internal 3-way mode state
@@ -193,7 +194,7 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
 
         {/* Focused sub-category cards (only when focused + not marketing) */}
         {uiMode === "focused" && (
-          <div className="grid grid-cols-3 gap-2 pt-1 fade-in">
+          <div className="grid grid-cols-2 gap-2 pt-1 fade-in">
             {FOCUSED_OPTIONS.map(({ id, label, icon, desc }) => {
               const active = category === id;
               return (

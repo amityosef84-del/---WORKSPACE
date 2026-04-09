@@ -19,13 +19,13 @@
 import { runStructuredStep, runStepWithFallback, MODEL_OPUS, MODEL_SONNET, MODEL_HAIKU } from "./anthropic";
 import { scrapeUrl, scrapeSucceeded, formatScrapedContent } from "./scraper";
 import {
-  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM, STEP5_SYSTEM, STEP6_SYSTEM,
-  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt, step5UserPrompt, step6UserPrompt,
+  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM, STEP5_SYSTEM, STEP6_SYSTEM, STEP7_SYSTEM,
+  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt, step5UserPrompt, step6UserPrompt, step7UserPrompt,
 } from "./prompts";
 import type {
   ResearchReport,
   Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis,
-  Step4ExecutiveSummary, Step5PorterAnalysis, Step6MarketingGapAnalysis,
+  Step4ExecutiveSummary, Step5PorterAnalysis, Step6MarketingGapAnalysis, Step7ContentAssets,
   SSEEvent, ResearchRequest, FocusedCategory,
 } from "@/types/research";
 
@@ -81,6 +81,23 @@ const FALLBACK_STEP6: Step6MarketingGapAnalysis = {
   overallGapScore: 5,
 };
 
+const FALLBACK_STEP7: Step7ContentAssets = {
+  adCopy: {
+    headline: "הניתוח לא הושלם",
+    subheadline: "נסה שנית לקבלת תוצאות מלאות",
+    bodyText: "הניתוח לא הושלם. מומלץ לנסות שנית.",
+    callToAction: "נסה שנית",
+    platform: "both",
+  },
+  socialPosts: [],
+  landingPageHeadline: {
+    main: "הניתוח לא הושלם",
+    sub: "מומלץ לנסות שנית לקבלת תוצאות מלאות",
+    cta: "נסה שנית",
+  },
+  strategicAngle: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
+};
+
 // ─── Focused mode helpers ──────────────────────────────────────────────────────
 
 /**
@@ -90,10 +107,11 @@ const FALLBACK_STEP6: Step6MarketingGapAnalysis = {
 function shouldSkip(stepId: number, category?: FocusedCategory): boolean {
   if (!category) return false;
   switch (category) {
-    case "competitors": return stepId >= 2;                                        // only 0+1
-    case "risk":        return stepId === 2 || stepId === 4 || stepId === 5 || stepId === 6; // 0+1+3
-    case "porters":     return stepId === 2 || stepId === 3 || stepId === 4 || stepId === 6; // 0+1+5
-    case "marketing":   return stepId === 2 || stepId === 3 || stepId === 4 || stepId === 5; // 0+1+6
+    case "competitors": return stepId >= 2;                                                             // 0+1
+    case "risk":        return stepId === 2 || stepId === 4 || stepId === 5 || stepId === 6 || stepId === 7; // 0+1+3
+    case "porters":     return stepId === 2 || stepId === 3 || stepId === 4 || stepId === 6 || stepId === 7; // 0+1+5
+    case "marketing":   return stepId === 2 || stepId === 3 || stepId === 4 || stepId === 5 || stepId === 7; // 0+1+6
+    case "content":     return stepId === 2 || stepId === 3 || stepId === 4 || stepId === 5;                 // 0+1+6+7
     default:            return false;
   }
 }
@@ -133,11 +151,12 @@ export async function runResearchPipeline(
       { id: 4, nameEn: "סיכום מנהלים ותובנות",              nameHe: "סיכום מנהלים ותובנות",              status: "pending" },
       { id: 5, nameEn: "חמשת הכוחות של פורטר",             nameHe: "חמשת הכוחות של פורטר",             status: "pending" },
       { id: 6, nameEn: "ניתוח פערים שיווקי",               nameHe: "ניתוח פערים שיווקי",               status: "pending" },
+      { id: 7, nameEn: "יצירת תוכן אסטרטגי",              nameHe: "יצירת תוכן אסטרטגי",              status: "pending" },
     ],
   };
 
   /** Instantly mark a step as skipped and emit step_complete */
-  const skipStep = (id: 0 | 1 | 2 | 3 | 4 | 5 | 6) => {
+  const skipStep = (id: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) => {
     report.steps[id].status = "completed";
     report.steps[id].skipped = true;
     send({ type: "step_complete", stepId: id, skipped: true });
@@ -310,6 +329,7 @@ export async function runResearchPipeline(
     }
 
     // ── Step 6: Marketing Gap Analysis — Haiku, 90s (or skip) ───────────────
+    let step6Data: Step6MarketingGapAnalysis = FALLBACK_STEP6;
     if (shouldSkip(6, category)) {
       skipStep(6);
     } else {
@@ -331,12 +351,44 @@ export async function runResearchPipeline(
         "Step 6 (Marketing Gap)",
       );
 
+      step6Data = step6;
       report.step6 = step6;
       report.steps[6].status = "completed";
       report.steps[6].completedAt = Date.now();
       if (step6Partial) report.steps[6].partial = true;
       send({ type: "step_complete", stepId: 6, data: step6, partial: step6Partial });
       console.log(`[pipeline] Step 6 — done${step6Partial ? " (partial)" : ""}`);
+    }
+
+    // ── Step 7: Strategic Content Generation — Sonnet, 90s (or skip) ────────
+    if (shouldSkip(7, category)) {
+      skipStep(7);
+    } else {
+      report.steps[7].status = "running";
+      report.steps[7].startedAt = Date.now();
+      send({ type: "step_start", stepId: 7 });
+
+      console.log(`[pipeline] Step 7 — Sonnet Strategic Content Generation`);
+      const step6Summary = JSON.stringify(step6Data, null, 2);
+
+      const { data: step7, partial: step7Partial } = await runStepWithFallback(
+        () => runStructuredStep<Step7ContentAssets>(
+          STEP7_SYSTEM,
+          step7UserPrompt(url, step1Summary, step6Summary),
+          MODEL_SONNET,
+          false,
+        ),
+        FALLBACK_STEP7,
+        90_000,
+        "Step 7 (Content Assets)",
+      );
+
+      report.step7 = step7;
+      report.steps[7].status = "completed";
+      report.steps[7].completedAt = Date.now();
+      if (step7Partial) report.steps[7].partial = true;
+      send({ type: "step_complete", stepId: 7, data: step7, partial: step7Partial });
+      console.log(`[pipeline] Step 7 — done${step7Partial ? " (partial)" : ""}`);
     }
 
     console.log(`[pipeline] ✅ Complete for ${url}`);

@@ -133,6 +133,35 @@ export interface Step4ExecutiveSummary {
   executiveOneLiner: string;
 }
 
+// ─── Step 7: Strategic Content Assets ────────────────────────────────────────
+
+export interface AdCopy {
+  headline: string;
+  subheadline: string;
+  bodyText: string;
+  callToAction: string;
+  platform: "google" | "meta" | "both";
+}
+
+export interface SocialPostIdea {
+  concept: string;
+  hook: string;
+  content: string;
+  platform: string;
+  format: string;
+}
+
+export interface Step7ContentAssets {
+  adCopy: AdCopy;
+  socialPosts: SocialPostIdea[];
+  landingPageHeadline: {
+    main: string;
+    sub: string;
+    cta: string;
+  };
+  strategicAngle: string;
+}
+
 // ─── Step 6: Marketing Gap Analysis ──────────────────────────────────────────
 
 export interface MarketingChannelGap {
@@ -181,14 +210,14 @@ export interface Step5PorterAnalysis {
 // ─── Research Mode (Selective Research) ──────────────────────────────────────
 
 export type ResearchMode = "full" | "focused";
-export type FocusedCategory = "competitors" | "porters" | "risk" | "marketing";
+export type FocusedCategory = "competitors" | "porters" | "risk" | "marketing" | "content";
 
 // ─── Pipeline State ───────────────────────────────────────────────────────────
 
 export type StepStatus = "pending" | "running" | "completed" | "error";
 
 export interface PipelineStep {
-  id: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  id: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   nameEn: string;
   nameHe: string;
   status: StepStatus;
@@ -210,13 +239,14 @@ export interface ResearchReport {
   mode?: ResearchMode;
   focusedCategory?: FocusedCategory;
   createdAt: number;
-  steps: [PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep];
+  steps: [PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep, PipelineStep];
   step1?: Step1CompetitorAnalysis;
   step2?: Step2BlueOcean;
   step3?: Step3RiskAnalysis;
   step4?: Step4ExecutiveSummary;
   step5?: Step5PorterAnalysis;
   step6?: Step6MarketingGapAnalysis;
+  step7?: Step7ContentAssets;
 }
 
 // ─── SSE Event Types ──────────────────────────────────────────────────────────
@@ -231,8 +261,8 @@ export type SSEEventType =
 
 export interface SSEEvent {
   type: SSEEventType;
-  stepId?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
-  data?: Step1CompetitorAnalysis | Step2BlueOcean | Step3RiskAnalysis | Step4ExecutiveSummary | Step5PorterAnalysis | Step6MarketingGapAnalysis;
+  stepId?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+  data?: Step1CompetitorAnalysis | Step2BlueOcean | Step3RiskAnalysis | Step4ExecutiveSummary | Step5PorterAnalysis | Step6MarketingGapAnalysis | Step7ContentAssets;
   error?: string;
   report?: ResearchReport;
   partial?: boolean;
