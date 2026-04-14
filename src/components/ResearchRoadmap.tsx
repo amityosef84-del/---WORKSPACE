@@ -325,6 +325,13 @@ function StageRow({ config, step, isLast, now }: {
           </div>
         )}
 
+        {/* Live sub-step progress (e.g. Porter force completions) */}
+        {isRunning && step.progressMessage && (
+          <p className="text-xs pr-6 tabular-nums" style={{ color: GOLD }}>
+            {step.progressMessage}
+          </p>
+        )}
+
         {/* Micro-tasks */}
         {(isRunning || isDone) && !isSkipped && !isPartial && (
           <div className="pr-6">

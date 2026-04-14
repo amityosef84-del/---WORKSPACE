@@ -59,6 +59,13 @@ export default function HomePage() {
         if (event.stepId === 6) partialReport.current.step6 = event.data as Step6MarketingGapAnalysis;
         if (event.stepId === 7) partialReport.current.step7 = event.data as Step7ContentAssets;
         break;
+      case "step_progress":
+        // Stream sub-step progress (e.g. "force 3/5 ✓") into the step's label
+        if (event.stepId != null) updateStep(event.stepId, { progressMessage: event.message });
+        break;
+      case "heartbeat":
+        // Keep-alive ping — no state change needed
+        break;
       case "step_error":
         updateStep(event.stepId!, { status: "error", error: event.error });
         break;

@@ -267,7 +267,72 @@ ${step3Data}
   `.trim();
 }
 
+// ─── Step 5 (parallel): single-force prompts ─────────────────────────────────
+// Each of the 5 Porter forces is analysed in its own tiny Haiku call so they
+// can run concurrently.  Results are combined in the pipeline.
+
+export const STEP5_FORCE_SYSTEM = `
+אתה אנליסט אסטרטגי. נתח כוח אחד בלבד ממודל חמשת הכוחות של פורטר — מהפרספקטיבה של עסק המשתמש.
+ציון אטרקטיביות: 10 = טוב מאוד לעסק, 1 = קשה מאוד. כלול 2-3 גורמי מפתח בלבד.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "name": "שם הכוח בעברית",
+  "analysis": "ניתוח 2-3 משפטים קצרים",
+  "score": 7,
+  "keyFactors": ["גורם 1", "גורם 2"]
+}
+`.trim();
+
+export function step5ForcePrompt(
+  forceName: string,
+  forceKey: string,
+  userUrl: string,
+  step1Data: string,
+): string {
+  return `
+אתר העסק: **${userUrl}**
+כוח לניתוח: **${forceName}** (מפתח: ${forceKey})
+
+--- ניתוח העסק מול השוק ---
+${step1Data}
+
+נתח את הכוח "${forceName}" מהפרספקטיבה של עסק המשתמש.
+ציון 10 = הכוח אטרקטיבי מאוד לעסק, 1 = קשה מאוד.
+כל הפלט בעברית בלבד.
+  `.trim();
+}
+
+export const STEP5_IMPLICATION_SYSTEM = `
+אתה אנליסט אסטרטגי. על בסיס ניתוח חמשת הכוחות שסופק, כתוב פסקה אחת (3-4 משפטים)
+המסכמת את המשמעות האסטרטגית לעסק המשתמש.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד:
+{ "strategicImplication": "פסקה אחת בעברית" }
+`.trim();
+
+export function step5ImplicationPrompt(
+  userUrl: string,
+  forcesSummary: string,
+  avgScore: number,
+): string {
+  return `
+אתר העסק: **${userUrl}**
+ציון אטרקטיביות ממוצע: **${avgScore}/10**
+
+ניתוח חמשת הכוחות:
+${forcesSummary}
+
+כתוב פסקה אחת המסכמת את המשמעות האסטרטגית לעסק. כל הפלט בעברית.
+  `.trim();
+}
+
 // ─── Step 5: חמשת הכוחות של פורטר — פרספקטיבת המשתמש ────────────────────────
+// (kept for reference; pipeline now uses the parallel per-force prompts above)
 
 export const STEP5_SYSTEM = `
 אתה אנליסט אסטרטגי המתמחה במודל חמשת הכוחות של פורטר.

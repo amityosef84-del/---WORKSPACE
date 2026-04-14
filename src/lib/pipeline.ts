@@ -19,13 +19,18 @@
 import { runStructuredStep, runStepWithFallback, MODEL_OPUS, MODEL_SONNET, MODEL_HAIKU } from "./anthropic";
 import { scrapeUrl, scrapeSucceeded, formatScrapedContent } from "./scraper";
 import {
-  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM, STEP5_SYSTEM, STEP6_SYSTEM, STEP7_SYSTEM,
-  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt, step5UserPrompt, step6UserPrompt, step7UserPrompt,
+  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM,
+  STEP5_FORCE_SYSTEM, STEP5_IMPLICATION_SYSTEM,
+  step5ForcePrompt, step5ImplicationPrompt,
+  STEP6_SYSTEM, STEP7_SYSTEM,
+  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt,
+  step6UserPrompt, step7UserPrompt,
 } from "./prompts";
 import type {
   ResearchReport,
   Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis,
-  Step4ExecutiveSummary, Step5PorterAnalysis, Step6MarketingGapAnalysis, Step7ContentAssets,
+  Step4ExecutiveSummary, Step5PorterAnalysis, PorterForce,
+  Step6MarketingGapAnalysis, Step7ContentAssets,
   SSEEvent, ResearchRequest, FocusedCategory,
 } from "@/types/research";
 
@@ -63,12 +68,19 @@ const FALLBACK_STEP4: Step4ExecutiveSummary = {
   executiveOneLiner: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
 };
 
+const FALLBACK_FORCE: PorterForce = {
+  name: "הניתוח לא הושלם",
+  analysis: "הניתוח לא הושלם.",
+  score: 5,
+  keyFactors: [],
+};
+
 const FALLBACK_STEP5: Step5PorterAnalysis = {
-  rivalry:      { name: "תחרות בין מתחרים קיימים", analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  newEntrants:  { name: "איום של נכנסים חדשים",    analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  supplierPower:{ name: "כוח המיקוח של ספקים",     analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  buyerPower:   { name: "כוח המיקוח של קונים",     analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
-  substitutes:  { name: "איום של תחליפים",          analysis: "הניתוח לא הושלם.", score: 5, keyFactors: [] },
+  rivalry:      { ...FALLBACK_FORCE, name: "תחרות בין מתחרים קיימים" },
+  newEntrants:  { ...FALLBACK_FORCE, name: "איום של נכנסים חדשים" },
+  supplierPower:{ ...FALLBACK_FORCE, name: "כוח המיקוח של ספקים" },
+  buyerPower:   { ...FALLBACK_FORCE, name: "כוח המיקוח של קונים" },
+  substitutes:  { ...FALLBACK_FORCE, name: "איום של תחליפים" },
   overallAttractivenessScore: 5,
   strategicImplication: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
 };
@@ -131,6 +143,12 @@ export async function runResearchPipeline(
   const encoder = new TextEncoder();
   const send = (event: SSEEvent) =>
     controller.enqueue(encoder.encode(encodeSSE(event)));
+
+  // ── Heartbeat: prevents Vercel from closing the SSE connection during long
+  //    AI steps. The browser ignores "heartbeat" events; the stream stays open.
+  const heartbeatInterval = setInterval(() => {
+    try { send({ type: "heartbeat" }); } catch { /* stream already closed */ }
+  }, 15_000);
 
   const { competitorUrl: url, additionalDetails: details } = request;
   const mode = request.mode ?? "full";
@@ -296,36 +314,95 @@ export async function runResearchPipeline(
       console.log(`[pipeline] Step 4 — done${step4Partial ? " (partial)" : ""}`);
     }
 
-    // ── Step 5: Porter's Five Forces — Haiku, 90s (or skip) ─────────────────
+    // ── Step 5: Porter's Five Forces — 5 PARALLEL Haiku calls ──────────────
+    // Running each force as a separate small call has two benefits:
+    //  1. Each call finishes much faster (fewer tokens) → lower total latency.
+    //  2. Progress events stream back as each force completes → keeps the
+    //     Vercel SSE connection active and the UI progress bar moving.
     if (shouldSkip(5, category)) {
       skipStep(5);
     } else {
       report.steps[5].status = "running";
       report.steps[5].startedAt = Date.now();
       send({ type: "step_start", stepId: 5 });
+      console.log(`[pipeline] Step 5 — 5 parallel Porter force calls (Haiku)`);
 
-      console.log(`[pipeline] Step 5 — Haiku Porter's Five Forces`);
-      const step2Summary = JSON.stringify(step2Result.data, null, 2);
-      const step3Summary = JSON.stringify(step3Result.data, null, 2);
+      const FORCE_CONFIGS = [
+        { key: "rivalry"       as const, name: "תחרות בין מתחרים קיימים" },
+        { key: "newEntrants"   as const, name: "איום של נכנסים חדשים" },
+        { key: "supplierPower" as const, name: "כוח המיקוח של ספקים" },
+        { key: "buyerPower"    as const, name: "כוח המיקוח של קונים" },
+        { key: "substitutes"   as const, name: "איום של תחליפים" },
+      ] as const;
 
-      const { data: step5, partial: step5Partial } = await runStepWithFallback(
-        () => runStructuredStep<Step5PorterAnalysis>(
-          STEP5_SYSTEM,
-          step5UserPrompt(url, step1Summary, step2Summary, step3Summary),
+      let completedForces = 0;
+
+      const forcePromises = FORCE_CONFIGS.map((fc) =>
+        runStepWithFallback(
+          () => runStructuredStep<PorterForce>(
+            STEP5_FORCE_SYSTEM,
+            step5ForcePrompt(fc.name, fc.key, url, step1Summary),
+            MODEL_HAIKU,
+            false,
+          ),
+          { ...FALLBACK_FORCE, name: fc.name },
+          45_000,
+          `Step 5 (${fc.name})`,
+        ).then(({ data, partial }) => {
+          completedForces++;
+          // Stream a progress tick immediately so the frontend sees activity
+          send({ type: "step_progress", stepId: 5, message: `${fc.name} ✓ (${completedForces}/5)` });
+          return { key: fc.key, data, partial };
+        })
+      );
+
+      const forceResults = await Promise.all(forcePromises);
+
+      // Build the forces object from results
+      const forces = {
+        rivalry:       forceResults[0].data,
+        newEntrants:   forceResults[1].data,
+        supplierPower: forceResults[2].data,
+        buyerPower:    forceResults[3].data,
+        substitutes:   forceResults[4].data,
+      };
+
+      // Overall score = average of 5 force scores
+      const avgScore = Math.round(
+        forceResults.reduce((sum, r) => sum + r.data.score, 0) / forceResults.length,
+      );
+
+      const anyForcePartial = forceResults.some((r) => r.partial);
+
+      // Strategic implication — one quick Haiku call using all 5 force analyses
+      const forcesSummary = forceResults
+        .map((r) => `${r.data.name} (${r.data.score}/10): ${r.data.analysis}`)
+        .join("\n");
+
+      const { data: stratData } = await runStepWithFallback(
+        () => runStructuredStep<{ strategicImplication: string }>(
+          STEP5_IMPLICATION_SYSTEM,
+          step5ImplicationPrompt(url, forcesSummary, avgScore),
           MODEL_HAIKU,
           false,
         ),
-        FALLBACK_STEP5,
-        90_000,
-        "Step 5 (Porter's Five Forces)",
+        { strategicImplication: "ניתוח הכוחות הושלם — ראה את הציונים הבודדים לתמונה האסטרטגית." },
+        30_000,
+        "Step 5 (Strategic Implication)",
       );
+
+      const step5: Step5PorterAnalysis = {
+        ...forces,
+        overallAttractivenessScore: avgScore,
+        strategicImplication: stratData.strategicImplication,
+      };
 
       report.step5 = step5;
       report.steps[5].status = "completed";
       report.steps[5].completedAt = Date.now();
-      if (step5Partial) report.steps[5].partial = true;
-      send({ type: "step_complete", stepId: 5, data: step5, partial: step5Partial });
-      console.log(`[pipeline] Step 5 — done${step5Partial ? " (partial)" : ""}`);
+      if (anyForcePartial) report.steps[5].partial = true;
+      send({ type: "step_complete", stepId: 5, data: step5, partial: anyForcePartial });
+      console.log(`[pipeline] Step 5 — done (${forceResults.filter((r) => !r.partial).length}/5 forces full)`);
     }
 
     // ── Step 6: Marketing Gap Analysis — Haiku, 90s (or skip) ───────────────
@@ -405,6 +482,7 @@ export async function runResearchPipeline(
     }
     send({ type: "pipeline_error", error: message });
   } finally {
+    clearInterval(heartbeatInterval);
     controller.close();
   }
 }

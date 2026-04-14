@@ -228,6 +228,8 @@ export interface PipelineStep {
   partial?: boolean;
   /** true when this step was intentionally skipped (focused mode) */
   skipped?: boolean;
+  /** live sub-step message streamed during a running step (e.g. "3/5 forces ✓") */
+  progressMessage?: string;
 }
 
 export interface ResearchReport {
@@ -257,7 +259,11 @@ export type SSEEventType =
   | "step_error"
   | "scrape_warning"
   | "pipeline_complete"
-  | "pipeline_error";
+  | "pipeline_error"
+  /** Sub-step progress within a running step (e.g. each Porter force) */
+  | "step_progress"
+  /** Keep-alive ping — prevents Vercel from closing idle SSE connections */
+  | "heartbeat";
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -268,6 +274,8 @@ export interface SSEEvent {
   partial?: boolean;
   /** true when step was skipped due to focused mode */
   skipped?: boolean;
+  /** payload for step_progress events */
+  message?: string;
 }
 
 // ─── API Request/Response ─────────────────────────────────────────────────────
