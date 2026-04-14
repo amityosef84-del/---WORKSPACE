@@ -142,30 +142,38 @@ function shouldSkip(stepId: number, category?: FocusedCategory): boolean {
  * ~600 tokens so parallel Haiku calls finish quickly.
  */
 function slimStep1(step1: Step1CompetitorAnalysis): string {
-  return JSON.stringify({
-    userProfile: step1.userProfile ? {
-      name: step1.userProfile.name,
-      positioning: step1.userProfile.identityAndNarrative.positioning,
-      brandVoice: step1.userProfile.identityAndNarrative.brandVoice,
-      keyFocusPoints: step1.userProfile.offer.keyFocusPoints,
-      pricingModels: step1.userProfile.offer.pricingModels,
-      distributionChannels: step1.userProfile.marketingAndTraffic.distributionChannels,
-      targetAudience: step1.userProfile.targetAudience.demographics,
-      psychographics: step1.userProfile.targetAudience.psychographics,
-    } : undefined,
-    competitors: step1.competitors.map((c) => ({
-      name: c.name,
-      positioning: c.identityAndNarrative.positioning,
-      keyFocusPoints: c.offer.keyFocusPoints,
-      pricingModels: c.offer.pricingModels,
-      distributionChannels: c.marketingAndTraffic.distributionChannels,
-      targetAudience: c.targetAudience.demographics,
-    })),
-    indirectCompetitors: step1.indirectCompetitors.map((c) => ({
-      name: c.name, threatLevel: c.threatLevel,
-    })),
-    marketOverview: step1.marketOverview,
-  });
+  try {
+    return JSON.stringify({
+      userProfile: step1.userProfile ? {
+        name: step1.userProfile.name ?? "",
+        positioning: step1.userProfile.identityAndNarrative?.positioning ?? "",
+        brandVoice: step1.userProfile.identityAndNarrative?.brandVoice ?? "",
+        keyFocusPoints: step1.userProfile.offer?.keyFocusPoints ?? [],
+        pricingModels: step1.userProfile.offer?.pricingModels ?? [],
+        distributionChannels: step1.userProfile.marketingAndTraffic?.distributionChannels ?? [],
+        targetAudience: step1.userProfile.targetAudience?.demographics ?? "",
+        psychographics: step1.userProfile.targetAudience?.psychographics ?? "",
+      } : undefined,
+      competitors: (step1.competitors ?? []).map((c) => ({
+        name: c.name ?? "",
+        positioning: c.identityAndNarrative?.positioning ?? "",
+        keyFocusPoints: c.offer?.keyFocusPoints ?? [],
+        pricingModels: c.offer?.pricingModels ?? [],
+        distributionChannels: c.marketingAndTraffic?.distributionChannels ?? [],
+        targetAudience: c.targetAudience?.demographics ?? "",
+      })),
+      indirectCompetitors: (step1.indirectCompetitors ?? []).map((c) => ({
+        name: c.name ?? "", threatLevel: c.threatLevel,
+      })),
+      marketOverview: step1.marketOverview ?? "",
+    });
+  } catch {
+    // Nuclear fallback — if any field access still fails, return minimal safe context
+    return JSON.stringify({
+      marketOverview: step1.marketOverview ?? "",
+      competitors: (step1.competitors ?? []).map((c) => ({ name: c.name ?? "" })),
+    });
+  }
 }
 
 // ─── SSE helpers ──────────────────────────────────────────────────────────────
