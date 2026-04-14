@@ -133,12 +133,12 @@ export async function runStructuredStep<T>(
   userPrompt: string,
   model: string = MODEL_OPUS,
   useThinking = true,
+  maxTokens = 8000,
 ): Promise<T> {
   const stream = anthropic.messages.stream({
     model,
-    // 8 000 output tokens — enough for the most verbose steps (Step 1 with
-    // 4 competitor profiles) without hitting per-model limits.
-    max_tokens: 8000,
+    // Default 8 000 output tokens; creative steps (Step 7) can request more.
+    max_tokens: maxTokens,
     ...(useThinking ? { thinking: { type: "adaptive" } } : {}),
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],

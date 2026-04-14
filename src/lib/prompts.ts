@@ -656,11 +656,12 @@ ${step1Data}
   `.trim();
 }
 
-// ─── Step 7 (parallel A): ad copy + landing page + strategic angle ───────────
+// ─── Step 7 (parallel A): ad copy only ──────────────────────────────────────
+// Focused single-output call so Haiku finishes fast (~10-15s).
 
-export const STEP7_ASSETS_SYSTEM = `
-אתה Copywriter ומומחה שיווק בכיר. צור פרסומת ממירה + כותרת לדף נחיתה + זווית תחרותית.
-קצר, חד, מוכן לשימוש מיידי. מדבר ישירות לכאב הלקוח ותוקף את חולשות המתחרים.
+export const STEP7_ADCOPY_SYSTEM = `
+אתה Copywriter בכיר. צור פרסומת אחת בלבד — קצרה, חדה, מוכנה לשימוש מיידי ב-Google/Meta.
+תוקף ישירות את הכאב הגדול ביותר של הלקוח ואת חולשת המתחרים.
 
 ${HEBREW_MANDATE}
 
@@ -669,31 +670,54 @@ ${HEBREW_MANDATE}
   "adCopy": {
     "headline": "כותרת עד 30 תווים",
     "subheadline": "תת-כותרת עד 60 תווים",
-    "bodyText": "2-3 משפטים שמדברים לכאב הלקוח",
+    "bodyText": "2-3 משפטים שמדברים לכאב הלקוח ותוקפים את חולשת המתחרה",
     "callToAction": "כפתור עד 20 תווים",
     "platform": "google"
-  },
+  }
+}
+`.trim();
+
+export function step7AdCopyPrompt(userUrl: string, slimCtx: string, biggestGap: string): string {
+  return `
+אתר העסק: **${userUrl}**
+הפער השיווקי הגדול ביותר מול המתחרים: **${biggestGap}**
+
+--- ניתוח שוק תמציתי ---
+${slimCtx}
+
+צור פרסומת אחת שתוקפת ישירות את הפער הזה. כל הפלט בעברית.
+  `.trim();
+}
+
+// ─── Step 7 (parallel B): landing page headline + strategic angle ─────────────
+
+export const STEP7_LANDING_SYSTEM = `
+אתה Copywriter בכיר. צור כותרת לדף נחיתה + זווית תחרותית מרכזית (Winning Angle).
+הכותרת: תגרום לגולש לומר "זה בדיוק מה שחיפשתי". הזווית: משפט אחד חד שמגדיר את הבידול.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
   "landingPageHeadline": {
     "main": "כותרת ראשית עד 60 תווים",
     "sub": "תת-כותרת עד 100 תווים",
     "cta": "קריאה לפעולה עד 25 תווים"
   },
-  "strategicAngle": "משפט אחד — הזווית התחרותית המרכזית"
+  "strategicAngle": "משפט אחד — הזווית התחרותית המרכזית שהעסק צריך לאמץ"
 }
 `.trim();
 
-export function step7AssetsPrompt(userUrl: string, step1Data: string, step6Summary: string): string {
+export function step7LandingPrompt(userUrl: string, slimCtx: string, biggestOpportunity: string): string {
   return `
-אתר העסק של המשתמש: **${userUrl}**
+אתר העסק: **${userUrl}**
+ההזדמנות הגדולה ביותר בשוק: **${biggestOpportunity}**
 
---- ניתוח העסק מול השוק (שלב 1) ---
-${step1Data}
+--- ניתוח שוק תמציתי ---
+${slimCtx}
 
---- פערים שיווקיים (שלב 6) ---
-${step6Summary}
-
-צור פרסומת Google, כותרת דף נחיתה, וזווית תחרותית מרכזית.
-תוקף את החולשה הגדולה ביותר של המתחרים. כל הפלט בעברית.
+צור כותרת לדף נחיתה שתתפוס את ההזדמנות הזאת, ומשפט זווית תחרותי אחד.
+כל הפלט בעברית.
   `.trim();
 }
 
@@ -720,15 +744,15 @@ export function step7SocialPrompt(
   format: string,
   angle: string,
   userUrl: string,
-  step1Data: string,
+  slimCtx: string,        // pass slimStep1() output, not the full step1Summary
 ): string {
   return `
 אתר העסק של המשתמש: **${userUrl}**
 פלטפורמה: **${platform}** | פורמט: **${format}**
 זווית תוכן: **${angle}**
 
---- ניתוח העסק מול השוק (שלב 1) ---
-${step1Data}
+--- ניתוח שוק תמציתי ---
+${slimCtx}
 
 צור פוסט/ריל ויראלי אחד ל-${platform} (${format}) מהזווית: "${angle}".
 כל הפלט בעברית. החזר JSON בלבד.
