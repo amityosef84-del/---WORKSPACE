@@ -196,7 +196,137 @@ ${step1Data}
   `.trim();
 }
 
+// ─── Step 4 (parallel A): audience map ───────────────────────────────────────
+
+export const STEP4_AUDIENCE_SYSTEM = `
+אתה מנהל אסטרטגיה. זהה 2-3 סגמנטי קהל לקוחות לעסק המשתמש, בהתבסס על ניתוח השוק.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "audienceMap": [
+    { "name": "סגמנט א", "size": "גדול", "burningPainPoints": ["כאב 1", "כאב 2"], "willingnessToPay": "high" },
+    { "name": "סגמנט ב", "size": "בינוני", "burningPainPoints": ["כאב 1"], "willingnessToPay": "medium" }
+  ]
+}
+`.trim();
+
+export function step4AudiencePrompt(userUrl: string, slimContext: string): string {
+  return `
+אתר העסק: **${userUrl}**
+
+--- ניתוח תמציתי של השוק ---
+${slimContext}
+
+זהה 2-3 סגמנטי קהל יעד לעסק המשתמש — מי הם הלקוחות, מה הכאבים שלהם, עד כמה הם מוכנים לשלם.
+כל הפלט בעברית.
+  `.trim();
+}
+
+// ─── Step 4 (parallel B): competitor squad ────────────────────────────────────
+
+export const STEP4_SQUAD_SYSTEM = `
+אתה מנהל אסטרטגיה. קטלג את המתחרים שזוהו כ"טיטאנים" (גדולים וממוסדים) ו"עולים חדשים" (צומחים ומהירים).
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "competitorSquad": {
+    "titans": [
+      { "name": "שם", "strength": "החוזק העיקרי", "weakness": "החולשה העיקרית" },
+      { "name": "שם", "strength": "חוזק", "weakness": "חולשה" }
+    ],
+    "upAndComers": [
+      { "name": "שם", "growthDriver": "מנוע הצמיחה", "threat": "האיום לעסק המשתמש" }
+    ]
+  }
+}
+`.trim();
+
+export function step4SquadPrompt(userUrl: string, slimContext: string): string {
+  return `
+אתר העסק: **${userUrl}**
+
+--- ניתוח תמציתי של השוק ---
+${slimContext}
+
+קטלג את המתחרים שזוהו: מי הטיטאנים (מתחרים גדולים וממוסדים) ומי העולים החדשים (מתחרים צומחים).
+לכל מתחרה: חוזק מרכזי + חולשה עיקרית (טיטאנים) / מנוע צמיחה + איום (עולים חדשים). כל הפלט בעברית.
+  `.trim();
+}
+
+// ─── Step 4 (parallel C): ERRC blue ocean grid ───────────────────────────────
+
+export const STEP4_ERRC_SYSTEM = `
+אתה מומחה לאסטרטגיית "האוקיינוס הכחול". צור מסגרת ERRC (Eliminate-Reduce-Raise-Create) לעסק המשתמש.
+2-3 פריטים בכל תא. blueOceanStatement — 2 משפטים על היתרון הייחודי.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "blueOceanERRC": {
+    "eliminate": ["פריט שהמתחרים מציעים ואפשר לבטל"],
+    "reduce": ["פריט שאפשר להפחית מתחת לתקן התעשייה"],
+    "raise": ["פריט שיש להעלות מעל לתקן התעשייה"],
+    "create": ["פריט חדש שהמתחרים לא מציעים כלל"],
+    "blueOceanStatement": "2 משפטים על הייחוד התחרותי"
+  }
+}
+`.trim();
+
+export function step4ErrcPrompt(userUrl: string, slimContext: string, topOpportunity: string): string {
+  return `
+אתר העסק: **${userUrl}**
+ההזדמנות הגדולה ביותר: **${topOpportunity}**
+
+--- ניתוח תמציתי של השוק ---
+${slimContext}
+
+צור מסגרת ERRC: מה לבטל/להפחית (מה המתחרים עושים שמיותר) ומה להעלות/ליצור (מה יבדל את העסק).
+כל הפלט בעברית.
+  `.trim();
+}
+
+// ─── Step 4 (parallel D): SWOT + executive one-liner ─────────────────────────
+
+export const STEP4_SWOT_SYSTEM = `
+אתה מנהל אסטרטגיה. צור ניתוח SWOT לעסק המשתמש ביחס לשוק, עם המלצות לפעולה.
+2-3 פריטים בכל תא. actNow — פעולות מיידיות. avoid — סיכונים להימנע מהם.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "swotMatrix": {
+    "strengths": ["חוזקה ביחס לשוק"],
+    "weaknesses": ["חולשה ביחס לשוק"],
+    "opportunities": ["הזדמנות לעסק"],
+    "threats": ["איום מהשוק"],
+    "actNow": ["פעולה מיידית לחיזוק מיצוב"],
+    "avoid": ["הימנע מ-..."]
+  },
+  "executiveOneLiner": "משפט אחד המסכם את עמדת העסק ביחס לשוק"
+}
+`.trim();
+
+export function step4SwotPrompt(userUrl: string, slimContext: string, riskSummary: string): string {
+  return `
+אתר העסק: **${userUrl}**
+סיכום סיכונים: **${riskSummary}**
+
+--- ניתוח תמציתי של השוק ---
+${slimContext}
+
+צור ניתוח SWOT לעסק ביחס לשוק ומשפט סיכום אחד (executiveOneLiner) המציג את המיצוב הייחודי.
+כל הפלט בעברית.
+  `.trim();
+}
+
 // ─── Step 4: סיכום מנהלים — "אני מול השוק" ──────────────────────────────────
+// (kept as single-call reference; pipeline now uses parallel A–D above)
 
 export const STEP4_SYSTEM = `
 אתה מנהל אסטרטגיה בכיר. צור סיכום מנהלים המשווה בין עסק המשתמש למתחריו.

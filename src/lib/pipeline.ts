@@ -19,19 +19,22 @@
 import { runStructuredStep, runStepWithFallback, MODEL_OPUS, MODEL_SONNET, MODEL_HAIKU } from "./anthropic";
 import { scrapeUrl, scrapeSucceeded, formatScrapedContent } from "./scraper";
 import {
-  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM,
+  STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM,
+  STEP4_AUDIENCE_SYSTEM, STEP4_SQUAD_SYSTEM, STEP4_ERRC_SYSTEM, STEP4_SWOT_SYSTEM,
+  step4AudiencePrompt, step4SquadPrompt, step4ErrcPrompt, step4SwotPrompt,
   STEP5_FORCE_SYSTEM, STEP5_IMPLICATION_SYSTEM,
   step5ForcePrompt, step5ImplicationPrompt,
   STEP6_CHANNELS_SYSTEM, STEP6_INSIGHTS_SYSTEM,
   step6ChannelsPrompt, step6InsightsPrompt,
   STEP7_ASSETS_SYSTEM, STEP7_SOCIAL_SYSTEM,
   step7AssetsPrompt, step7SocialPrompt,
-  step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt,
+  step1UserPrompt, step2UserPrompt, step3UserPrompt,
 } from "./prompts";
 import type {
   ResearchReport,
   Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis,
-  Step4ExecutiveSummary, Step5PorterAnalysis, PorterForce,
+  Step4ExecutiveSummary, AudienceSegment, CompetitorSquad, ERRCGrid, SWOTOpportunityMatrix,
+  Step5PorterAnalysis, PorterForce,
   Step6MarketingGapAnalysis, MarketingChannelGap,
   Step7ContentAssets, SocialPostIdea,
   SSEEvent, ResearchRequest, FocusedCategory,
@@ -129,6 +132,40 @@ function shouldSkip(stepId: number, category?: FocusedCategory): boolean {
     case "content":     return stepId === 2 || stepId === 3 || stepId === 4 || stepId === 5;                 // 0+1+6+7
     default:            return false;
   }
+}
+
+// ─── Context trimmer ──────────────────────────────────────────────────────────
+
+/**
+ * Extract only the fields each Step 4 sub-call actually needs.
+ * Step 1 (Opus output) is often 3–4 K tokens of JSON; this trims it to
+ * ~600 tokens so parallel Haiku calls finish quickly.
+ */
+function slimStep1(step1: Step1CompetitorAnalysis): string {
+  return JSON.stringify({
+    userProfile: step1.userProfile ? {
+      name: step1.userProfile.name,
+      positioning: step1.userProfile.identityAndNarrative.positioning,
+      brandVoice: step1.userProfile.identityAndNarrative.brandVoice,
+      keyFocusPoints: step1.userProfile.offer.keyFocusPoints,
+      pricingModels: step1.userProfile.offer.pricingModels,
+      distributionChannels: step1.userProfile.marketingAndTraffic.distributionChannels,
+      targetAudience: step1.userProfile.targetAudience.demographics,
+      psychographics: step1.userProfile.targetAudience.psychographics,
+    } : undefined,
+    competitors: step1.competitors.map((c) => ({
+      name: c.name,
+      positioning: c.identityAndNarrative.positioning,
+      keyFocusPoints: c.offer.keyFocusPoints,
+      pricingModels: c.offer.pricingModels,
+      distributionChannels: c.marketingAndTraffic.distributionChannels,
+      targetAudience: c.targetAudience.demographics,
+    })),
+    indirectCompetitors: step1.indirectCompetitors.map((c) => ({
+      name: c.name, threatLevel: c.threatLevel,
+    })),
+    marketOverview: step1.marketOverview,
+  });
 }
 
 // ─── SSE helpers ──────────────────────────────────────────────────────────────
@@ -285,29 +322,98 @@ export async function runResearchPipeline(
 
     const [step2Result, step3Result] = await Promise.all([step2Promise, step3Promise]);
 
-    // ── Step 4: Executive Summary — Sonnet, 90s (or skip) ───────────────────
+    // ── Step 4: Executive Summary — 4 PARALLEL Haiku calls ─────────────────
+    // Audience map | Competitor Squad | ERRC | SWOT+OneLiner
+    // Each call gets only the slim subset of step1 it needs (~600 tokens vs
+    // 4K for the full JSON), so all 4 finish in ~15-20s instead of 90s.
     if (shouldSkip(4, category)) {
       skipStep(4);
     } else {
       report.steps[4].status = "running";
       report.steps[4].startedAt = Date.now();
       send({ type: "step_start", stepId: 4 });
+      console.log(`[pipeline] Step 4 — 4 parallel Haiku calls (audience+squad+ERRC+SWOT)`);
 
-      console.log(`[pipeline] Step 4 — Sonnet executive summary`);
-      const step2Summary = JSON.stringify(step2Result.data, null, 2);
-      const step3Summary = JSON.stringify(step3Result.data, null, 2);
+      // Build slim context once — shared by all 4 sub-calls
+      const slimCtx = step1 ? slimStep1(step1) : step1Summary;
+      const topOpportunity = step2Result.data.topOpportunity ?? "לא זוהתה";
+      const riskSummary    = step3Result.data.riskSummary    ?? "לא זוהה";
 
-      const { data: step4, partial: step4Partial } = await runStepWithFallback(
-        () => runStructuredStep<Step4ExecutiveSummary>(
-          STEP4_SYSTEM,
-          step4UserPrompt(url, step1Summary, step2Summary, step3Summary),
-          MODEL_SONNET,
-          false,
-        ),
-        FALLBACK_STEP4,
-        90_000,
-        "Step 4 (Executive Summary)",
-      );
+      let completedParts = 0;
+
+      const [audienceResult, squadResult, errcResult, swotResult] = await Promise.all([
+
+        // Call A: audience map
+        runStepWithFallback(
+          () => runStructuredStep<{ audienceMap: AudienceSegment[] }>(
+            STEP4_AUDIENCE_SYSTEM,
+            step4AudiencePrompt(url, slimCtx),
+            MODEL_HAIKU, false,
+          ),
+          { audienceMap: FALLBACK_STEP4.audienceMap },
+          45_000, "Step 4A (Audience Map)",
+        ).then(({ data, partial }) => {
+          completedParts++;
+          send({ type: "step_progress", stepId: 4, message: `מפת קהל ✓ (${completedParts}/4)` });
+          return { data, partial };
+        }),
+
+        // Call B: competitor squad
+        runStepWithFallback(
+          () => runStructuredStep<{ competitorSquad: CompetitorSquad }>(
+            STEP4_SQUAD_SYSTEM,
+            step4SquadPrompt(url, slimCtx),
+            MODEL_HAIKU, false,
+          ),
+          { competitorSquad: FALLBACK_STEP4.competitorSquad },
+          45_000, "Step 4B (Competitor Squad)",
+        ).then(({ data, partial }) => {
+          completedParts++;
+          send({ type: "step_progress", stepId: 4, message: `מפת מתחרים ✓ (${completedParts}/4)` });
+          return { data, partial };
+        }),
+
+        // Call C: blue ocean ERRC
+        runStepWithFallback(
+          () => runStructuredStep<{ blueOceanERRC: ERRCGrid }>(
+            STEP4_ERRC_SYSTEM,
+            step4ErrcPrompt(url, slimCtx, topOpportunity),
+            MODEL_HAIKU, false,
+          ),
+          { blueOceanERRC: FALLBACK_STEP4.blueOceanERRC },
+          45_000, "Step 4C (ERRC Grid)",
+        ).then(({ data, partial }) => {
+          completedParts++;
+          send({ type: "step_progress", stepId: 4, message: `ERRC אוקיינוס כחול ✓ (${completedParts}/4)` });
+          return { data, partial };
+        }),
+
+        // Call D: SWOT + executive one-liner
+        runStepWithFallback(
+          () => runStructuredStep<{ swotMatrix: SWOTOpportunityMatrix; executiveOneLiner: string }>(
+            STEP4_SWOT_SYSTEM,
+            step4SwotPrompt(url, slimCtx, riskSummary),
+            MODEL_HAIKU, false,
+          ),
+          { swotMatrix: FALLBACK_STEP4.swotMatrix, executiveOneLiner: FALLBACK_STEP4.executiveOneLiner },
+          45_000, "Step 4D (SWOT)",
+        ).then(({ data, partial }) => {
+          completedParts++;
+          send({ type: "step_progress", stepId: 4, message: `SWOT ✓ (${completedParts}/4)` });
+          return { data, partial };
+        }),
+      ]);
+
+      const step4: Step4ExecutiveSummary = {
+        audienceMap:       audienceResult.data.audienceMap,
+        competitorSquad:   squadResult.data.competitorSquad,
+        blueOceanERRC:     errcResult.data.blueOceanERRC,
+        swotMatrix:        swotResult.data.swotMatrix,
+        executiveOneLiner: swotResult.data.executiveOneLiner,
+      };
+      const step4Partial =
+        audienceResult.partial || squadResult.partial ||
+        errcResult.partial     || swotResult.partial;
 
       report.step4 = step4;
       report.steps[4].status = "completed";
