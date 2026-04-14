@@ -174,48 +174,59 @@ function DownloadPdfButton({ targetRef, filename }: {
     if (!el) return;
     setLoading(true);
     try {
-      // Ensure Heebo font is loaded for html2canvas to capture correctly
+      // Ensure Heebo font is loaded before capture
       if (!document.getElementById("heebo-pdf-font")) {
         const link = document.createElement("link");
         link.id   = "heebo-pdf-font";
         link.rel  = "stylesheet";
         link.href = "https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800&display=swap";
         document.head.appendChild(link);
-        // Small wait for font to load
-        await new Promise<void>((r) => setTimeout(r, 400));
+        // Wait for font to paint
+        await new Promise<void>((r) => setTimeout(r, 800));
       }
 
-      const [{ default: html2canvas }, jspdfMod] = await Promise.all([
+      // Dynamically load both libraries in parallel
+      const [html2canvasMod, jspdfMod] = await Promise.all([
         import("html2canvas"),
         import("jspdf"),
       ]);
-      // jsPDF 4.x: named export. Older: default export. Handle both.
+      // html2canvas 1.x: default export
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const html2canvas = (html2canvasMod as any).default ?? html2canvasMod;
+      // jsPDF 4.x: named export; older builds: default
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const JsPDF = (jspdfMod as any).jsPDF ?? (jspdfMod as any).default;
 
-      // Scroll to top so html2canvas starts at the top of the element
+      // Scroll to top and give the layout one frame to settle
       window.scrollTo({ top: 0, behavior: "instant" });
-      await new Promise<void>((r) => setTimeout(r, 100));
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
+      // ── html2canvas capture ──────────────────────────────────────────────────
+      // IMPORTANT: Do NOT use allowTaint:true — it marks the canvas as tainted
+      // which makes toDataURL() throw SecurityError. useCORS:true is sufficient;
+      // images without CORS headers are simply skipped rather than crashing.
       const canvas = await html2canvas(el, {
         scale: 2,
         backgroundColor: "#000000",
         useCORS: true,
-        allowTaint: true,
+        // allowTaint intentionally omitted — would break toDataURL()
         logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        // Capture the full element width, not the viewport
-        width:  el.scrollWidth,
-        height: el.scrollHeight,
+        // Correct scroll offset so fixed/absolute elements land in the right place
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY,
+        // Capture the full element height, not just the visible viewport
+        width:        el.scrollWidth,
+        height:       el.scrollHeight,
         windowWidth:  el.scrollWidth,
         windowHeight: el.scrollHeight,
+        imageTimeout: 15000,
       });
 
-      // Single data-URL call (performance)
+      // toDataURL only works on an untainted canvas (hence no allowTaint above)
       const imgData = canvas.toDataURL("image/jpeg", 0.92);
 
-      const pdf  = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      // ── Build multi-page PDF ─────────────────────────────────────────────────
+      const pdf   = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const imgW  = pageW;
@@ -228,9 +239,16 @@ function DownloadPdfButton({ targetRef, filename }: {
         y += pageH;
         page++;
       }
+
+      // Trigger browser download to the Downloads folder
       pdf.save(filename);
     } catch (err) {
-      console.error("[PDF]", err);
+      // Log the full error so the exact failure is visible in DevTools console
+      console.error("[PDF] Export failed:", err);
+      if (err instanceof Error) {
+        console.error("[PDF] Message:", err.message);
+        console.error("[PDF] Stack:", err.stack);
+      }
       alert("שגיאה ביצירת ה-PDF — אנא נסה שנית");
     } finally {
       setLoading(false);
