@@ -459,7 +459,154 @@ ${step6Data}
   `.trim();
 }
 
+// ─── Step 6 (parallel A): channel gap analysis only ──────────────────────────
+
+export const STEP6_CHANNELS_SYSTEM = `
+אתה מומחה שיווק דיגיטלי. נתח את הנוכחות השיווקית של עסק המשתמש מול מתחריו בערוצים הדיגיטליים.
+לכל ערוץ קבע: userPresence ו-competitorPresence ("strong"/"moderate"/"weak"/"none"), gapLevel ("high"/"medium"/"low"), insight קצר.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "channelGaps": [
+    { "channel": "Google Ads", "userPresence": "none", "competitorPresence": "strong", "gapLevel": "high", "insight": "תיאור קצר" },
+    { "channel": "SEO אורגני", "userPresence": "moderate", "competitorPresence": "strong", "gapLevel": "medium", "insight": "תיאור קצר" },
+    { "channel": "Instagram", "userPresence": "weak", "competitorPresence": "strong", "gapLevel": "high", "insight": "תיאור קצר" },
+    { "channel": "TikTok", "userPresence": "none", "competitorPresence": "weak", "gapLevel": "medium", "insight": "תיאור קצר" },
+    { "channel": "Email/ניוזלטר", "userPresence": "none", "competitorPresence": "moderate", "gapLevel": "high", "insight": "תיאור קצר" },
+    { "channel": "Lead Magnets", "userPresence": "none", "competitorPresence": "strong", "gapLevel": "high", "insight": "תיאור קצר" }
+  ]
+}
+`.trim();
+
+export function step6ChannelsPrompt(userUrl: string, step1Data: string): string {
+  return `
+אתר העסק של המשתמש: **${userUrl}**
+
+--- ניתוח העסק מול השוק (שלב 1) ---
+${step1Data}
+
+בחן את הערוצים: Google Ads, SEO אורגני, Instagram, TikTok, Facebook Ads, LinkedIn, YouTube, Email/ניוזלטר, Lead Magnets, בלוג/תוכן.
+לכל ערוץ — קבע רמת נוכחות של המשתמש מול המתחרים ורמת פער. כל הפלט בעברית.
+  `.trim();
+}
+
+// ─── Step 6 (parallel B): strategic insights only ────────────────────────────
+
+export const STEP6_INSIGHTS_SYSTEM = `
+אתה מומחה אסטרטגיית שיווק. על בסיס ניתוח תחרותי — זהה הזדמנויות מיידיות (Low Hanging Fruit),
+הפער הגדול ביותר, וההזדמנות המשמעותית ביותר. הצע 3 פעולות מיידיות קצרות.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "lowHangingFruits": [
+    { "action": "פעולה ספציפית", "channel": "ערוץ", "effort": "low", "impact": "high", "reason": "סיבה קצרה" },
+    { "action": "פעולה ספציפית", "channel": "ערוץ", "effort": "medium", "impact": "high", "reason": "סיבה קצרה" },
+    { "action": "פעולה ספציפית", "channel": "ערוץ", "effort": "low", "impact": "medium", "reason": "סיבה קצרה" }
+  ],
+  "biggestGap": "משפט אחד — הפער הגדול ביותר",
+  "biggestOpportunity": "משפט אחד — ההזדמנות הגדולה ביותר שאף מתחרה לא מנצל",
+  "overallGapScore": 7
+}
+`.trim();
+
+export function step6InsightsPrompt(userUrl: string, step1Data: string): string {
+  return `
+אתר העסק של המשתמש: **${userUrl}**
+
+--- ניתוח העסק מול השוק (שלב 1) ---
+${step1Data}
+
+בהתבסס על נתוני ה-distributionChannels, marketingHooks, contentAngles של המתחרים לעומת המשתמש —
+הצע 3 פעולות מיידיות (Low Hanging Fruit), זהה את הפער הגדול ביותר ואת ההזדמנות הגדולה ביותר.
+ציון overallGapScore: 10 = פער ענק, 1 = פער קטן. כל הפלט בעברית.
+  `.trim();
+}
+
+// ─── Step 7 (parallel A): ad copy + landing page + strategic angle ───────────
+
+export const STEP7_ASSETS_SYSTEM = `
+אתה Copywriter ומומחה שיווק בכיר. צור פרסומת ממירה + כותרת לדף נחיתה + זווית תחרותית.
+קצר, חד, מוכן לשימוש מיידי. מדבר ישירות לכאב הלקוח ותוקף את חולשות המתחרים.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "adCopy": {
+    "headline": "כותרת עד 30 תווים",
+    "subheadline": "תת-כותרת עד 60 תווים",
+    "bodyText": "2-3 משפטים שמדברים לכאב הלקוח",
+    "callToAction": "כפתור עד 20 תווים",
+    "platform": "google"
+  },
+  "landingPageHeadline": {
+    "main": "כותרת ראשית עד 60 תווים",
+    "sub": "תת-כותרת עד 100 תווים",
+    "cta": "קריאה לפעולה עד 25 תווים"
+  },
+  "strategicAngle": "משפט אחד — הזווית התחרותית המרכזית"
+}
+`.trim();
+
+export function step7AssetsPrompt(userUrl: string, step1Data: string, step6Summary: string): string {
+  return `
+אתר העסק של המשתמש: **${userUrl}**
+
+--- ניתוח העסק מול השוק (שלב 1) ---
+${step1Data}
+
+--- פערים שיווקיים (שלב 6) ---
+${step6Summary}
+
+צור פרסומת Google, כותרת דף נחיתה, וזווית תחרותית מרכזית.
+תוקף את החולשה הגדולה ביותר של המתחרים. כל הפלט בעברית.
+  `.trim();
+}
+
+// ─── Step 7 (parallel B/C/D): single social post per platform ────────────────
+
+export const STEP7_SOCIAL_SYSTEM = `
+אתה Copywriter מומחה לרשתות חברתיות. צור פוסט/ריל ויראלי אחד לפלטפורמה ספציפית.
+Hook חייב לעצור גלילה. Content — 3-5 משפטים ישירים ומעוררי פעולה.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "concept": "הזווית הויראלית — מה הופך פוסט זה לשונה",
+  "hook": "שורת פתיחה עד 60 תווים",
+  "content": "סקריפט 3-5 משפטים",
+  "platform": "instagram",
+  "format": "reel"
+}
+`.trim();
+
+export function step7SocialPrompt(
+  platform: string,
+  format: string,
+  angle: string,
+  userUrl: string,
+  step1Data: string,
+): string {
+  return `
+אתר העסק של המשתמש: **${userUrl}**
+פלטפורמה: **${platform}** | פורמט: **${format}**
+זווית תוכן: **${angle}**
+
+--- ניתוח העסק מול השוק (שלב 1) ---
+${step1Data}
+
+צור פוסט/ריל ויראלי אחד ל-${platform} (${format}) מהזווית: "${angle}".
+כל הפלט בעברית. החזר JSON בלבד.
+  `.trim();
+}
+
 // ─── Step 6: ניתוח פערים שיווקי — Marketing Intelligence & Gap Analysis ────────
+// (kept as single-call fallback reference; pipeline now uses parallel A+B above)
 
 export const STEP6_SYSTEM = `
 אתה מומחה שיווק דיגיטלי ואסטרטגיית תוכן. תפקידך לנתח את **הפערים השיווקיים**

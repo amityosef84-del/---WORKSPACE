@@ -22,15 +22,18 @@ import {
   STEP1_SYSTEM, STEP2_SYSTEM, STEP3_SYSTEM, STEP4_SYSTEM,
   STEP5_FORCE_SYSTEM, STEP5_IMPLICATION_SYSTEM,
   step5ForcePrompt, step5ImplicationPrompt,
-  STEP6_SYSTEM, STEP7_SYSTEM,
+  STEP6_CHANNELS_SYSTEM, STEP6_INSIGHTS_SYSTEM,
+  step6ChannelsPrompt, step6InsightsPrompt,
+  STEP7_ASSETS_SYSTEM, STEP7_SOCIAL_SYSTEM,
+  step7AssetsPrompt, step7SocialPrompt,
   step1UserPrompt, step2UserPrompt, step3UserPrompt, step4UserPrompt,
-  step6UserPrompt, step7UserPrompt,
 } from "./prompts";
 import type {
   ResearchReport,
   Step1CompetitorAnalysis, Step2BlueOcean, Step3RiskAnalysis,
   Step4ExecutiveSummary, Step5PorterAnalysis, PorterForce,
-  Step6MarketingGapAnalysis, Step7ContentAssets,
+  Step6MarketingGapAnalysis, MarketingChannelGap,
+  Step7ContentAssets, SocialPostIdea,
   SSEEvent, ResearchRequest, FocusedCategory,
 } from "@/types/research";
 
@@ -405,7 +408,9 @@ export async function runResearchPipeline(
       console.log(`[pipeline] Step 5 — done (${forceResults.filter((r) => !r.partial).length}/5 forces full)`);
     }
 
-    // ── Step 6: Marketing Gap Analysis — Haiku, 90s (or skip) ───────────────
+    // ── Step 6: Marketing Gap Analysis — 2 PARALLEL Haiku calls ────────────
+    // Call A: channel gaps  |  Call B: strategic insights
+    // Both finish in ~15-20s each; progress ticks keep the connection alive.
     let step6Data: Step6MarketingGapAnalysis = FALLBACK_STEP6;
     if (shouldSkip(6, category)) {
       skipStep(6);
@@ -413,20 +418,58 @@ export async function runResearchPipeline(
       report.steps[6].status = "running";
       report.steps[6].startedAt = Date.now();
       send({ type: "step_start", stepId: 6 });
+      console.log(`[pipeline] Step 6 — 2 parallel Haiku calls (channels + insights)`);
 
-      console.log(`[pipeline] Step 6 — Haiku Marketing Gap Analysis`);
+      const [channelsResult, insightsResult] = await Promise.all([
+        runStepWithFallback(
+          () => runStructuredStep<{ channelGaps: MarketingChannelGap[] }>(
+            STEP6_CHANNELS_SYSTEM,
+            step6ChannelsPrompt(url, step1Summary),
+            MODEL_HAIKU,
+            false,
+          ),
+          { channelGaps: [] },
+          45_000,
+          "Step 6A (Channel Gaps)",
+        ).then(({ data, partial }) => {
+          send({ type: "step_progress", stepId: 6, message: `ניתוח ערוצים שיווקיים ✓` });
+          return { data, partial };
+        }),
 
-      const { data: step6, partial: step6Partial } = await runStepWithFallback(
-        () => runStructuredStep<Step6MarketingGapAnalysis>(
-          STEP6_SYSTEM,
-          step6UserPrompt(url, step1Summary),
-          MODEL_HAIKU,
-          false,
-        ),
-        FALLBACK_STEP6,
-        90_000,
-        "Step 6 (Marketing Gap)",
-      );
+        runStepWithFallback(
+          () => runStructuredStep<{
+            lowHangingFruits: Step6MarketingGapAnalysis["lowHangingFruits"];
+            biggestGap: string;
+            biggestOpportunity: string;
+            overallGapScore: number;
+          }>(
+            STEP6_INSIGHTS_SYSTEM,
+            step6InsightsPrompt(url, step1Summary),
+            MODEL_HAIKU,
+            false,
+          ),
+          {
+            lowHangingFruits: FALLBACK_STEP6.lowHangingFruits,
+            biggestGap: FALLBACK_STEP6.biggestGap,
+            biggestOpportunity: FALLBACK_STEP6.biggestOpportunity,
+            overallGapScore: FALLBACK_STEP6.overallGapScore,
+          },
+          45_000,
+          "Step 6B (Marketing Insights)",
+        ).then(({ data, partial }) => {
+          send({ type: "step_progress", stepId: 6, message: `זיהוי הזדמנויות מיידיות ✓` });
+          return { data, partial };
+        }),
+      ]);
+
+      const step6: Step6MarketingGapAnalysis = {
+        channelGaps: channelsResult.data.channelGaps,
+        lowHangingFruits: insightsResult.data.lowHangingFruits,
+        biggestGap: insightsResult.data.biggestGap,
+        biggestOpportunity: insightsResult.data.biggestOpportunity,
+        overallGapScore: insightsResult.data.overallGapScore,
+      };
+      const step6Partial = channelsResult.partial || insightsResult.partial;
 
       step6Data = step6;
       report.step6 = step6;
@@ -437,28 +480,86 @@ export async function runResearchPipeline(
       console.log(`[pipeline] Step 6 — done${step6Partial ? " (partial)" : ""}`);
     }
 
-    // ── Step 7: Strategic Content Generation — Sonnet, 90s (or skip) ────────
+    // ── Step 7: Strategic Content Generation — 4 PARALLEL Haiku calls ──────
+    // Call A : ad copy + landing page + strategic angle  (Haiku)
+    // Calls B,C,D: 3 social posts — Instagram reel, TikTok reel, Facebook post (Haiku each)
     if (shouldSkip(7, category)) {
       skipStep(7);
     } else {
       report.steps[7].status = "running";
       report.steps[7].startedAt = Date.now();
       send({ type: "step_start", stepId: 7 });
+      console.log(`[pipeline] Step 7 — 4 parallel Haiku calls (assets + 3 social posts)`);
 
-      console.log(`[pipeline] Step 7 — Sonnet Strategic Content Generation`);
       const step6Summary = JSON.stringify(step6Data, null, 2);
 
-      const { data: step7, partial: step7Partial } = await runStepWithFallback(
-        () => runStructuredStep<Step7ContentAssets>(
-          STEP7_SYSTEM,
-          step7UserPrompt(url, step1Summary, step6Summary),
-          MODEL_SONNET,
-          false,
+      const SOCIAL_CONFIGS = [
+        { platform: "instagram", format: "reel",  angle: "תקוף חולשה ספציפית של מתחרה" },
+        { platform: "tiktok",    format: "reel",  angle: "לפני ואחרי: חוויה עם המתחרה vs. עם המשתמש" },
+        { platform: "facebook",  format: "post",  angle: "תוכן חינוכי שמציב את העסק כמומחה" },
+      ] as const;
+
+      let completedAssets = 0;
+
+      const [assetsResult, ...socialResults] = await Promise.all([
+        // Call A: ad copy + landing page + strategic angle
+        runStepWithFallback(
+          () => runStructuredStep<{
+            adCopy: Step7ContentAssets["adCopy"];
+            landingPageHeadline: Step7ContentAssets["landingPageHeadline"];
+            strategicAngle: string;
+          }>(
+            STEP7_ASSETS_SYSTEM,
+            step7AssetsPrompt(url, step1Summary, step6Summary),
+            MODEL_HAIKU,
+            false,
+          ),
+          {
+            adCopy: FALLBACK_STEP7.adCopy,
+            landingPageHeadline: FALLBACK_STEP7.landingPageHeadline,
+            strategicAngle: FALLBACK_STEP7.strategicAngle,
+          },
+          60_000,
+          "Step 7A (Ad Assets)",
+        ).then(({ data, partial }) => {
+          completedAssets++;
+          send({ type: "step_progress", stepId: 7, message: `פרסומת + דף נחיתה ✓ (${completedAssets}/4)` });
+          return { data, partial };
+        }),
+
+        // Calls B, C, D: one social post each
+        ...SOCIAL_CONFIGS.map((sc) =>
+          runStepWithFallback(
+            () => runStructuredStep<SocialPostIdea>(
+              STEP7_SOCIAL_SYSTEM,
+              step7SocialPrompt(sc.platform, sc.format, sc.angle, url, step1Summary),
+              MODEL_HAIKU,
+              false,
+            ),
+            {
+              concept: sc.angle,
+              hook: "הניתוח לא הושלם — נסה שנית",
+              content: "הניתוח לא הושלם.",
+              platform: sc.platform,
+              format: sc.format,
+            } as SocialPostIdea,
+            45_000,
+            `Step 7 (${sc.platform})`,
+          ).then(({ data, partial }) => {
+            completedAssets++;
+            send({ type: "step_progress", stepId: 7, message: `${sc.platform} ✓ (${completedAssets}/4)` });
+            return { data, partial };
+          })
         ),
-        FALLBACK_STEP7,
-        90_000,
-        "Step 7 (Content Assets)",
-      );
+      ]);
+
+      const step7: Step7ContentAssets = {
+        adCopy: assetsResult.data.adCopy,
+        landingPageHeadline: assetsResult.data.landingPageHeadline,
+        strategicAngle: assetsResult.data.strategicAngle,
+        socialPosts: socialResults.map((r) => r.data),
+      };
+      const step7Partial = assetsResult.partial || socialResults.some((r) => r.partial);
 
       report.step7 = step7;
       report.steps[7].status = "completed";
