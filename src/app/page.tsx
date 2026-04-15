@@ -11,9 +11,10 @@ import type {
   ResearchMode, FocusedCategory,
 } from "@/types/research";
 
-const GOLD        = "#D4AF37";
-const GOLD_MUTED  = "rgba(212,175,55,0.12)";
-const GOLD_BORDER = "rgba(212,175,55,0.22)";
+// ─── Design tokens ─────────────────────────────────────────────────────────────
+const MINT        = "#10B981";
+const MINT_MUTED  = "rgba(16,185,129,0.08)";
+const MINT_BORDER = "rgba(16,185,129,0.18)";
 
 const ALL_STEPS: PipelineStep[] = [
   { id: 0, nameEn: "Digital Asset Scan",        nameHe: "סריקת נכסים דיגיטליים",         status: "pending" },
@@ -29,10 +30,10 @@ const ALL_STEPS: PipelineStep[] = [
 type AppState = "idle" | "running" | "complete" | "error";
 
 export default function HomePage() {
-  const [appState, setAppState]         = useState<AppState>("idle");
-  const [steps, setSteps]               = useState<PipelineStep[]>(ALL_STEPS);
-  const [report, setReport]             = useState<ResearchReport | null>(null);
-  const [error, setError]               = useState<string | null>(null);
+  const [appState, setAppState]           = useState<AppState>("idle");
+  const [steps, setSteps]                 = useState<PipelineStep[]>(ALL_STEPS);
+  const [report, setReport]               = useState<ResearchReport | null>(null);
+  const [error, setError]                 = useState<string | null>(null);
   const [scrapeWarning, setScrapeWarning] = useState<string | null>(null);
   const partialReport = useRef<Partial<ResearchReport>>({});
 
@@ -60,11 +61,9 @@ export default function HomePage() {
         if (event.stepId === 7) partialReport.current.step7 = event.data as Step7ContentAssets;
         break;
       case "step_progress":
-        // Stream sub-step progress (e.g. "force 3/5 ✓") into the step's label
         if (event.stepId != null) updateStep(event.stepId, { progressMessage: event.message });
         break;
       case "heartbeat":
-        // Keep-alive ping — no state change needed
         break;
       case "step_error":
         updateStep(event.stepId!, { status: "error", error: event.error });
@@ -132,35 +131,36 @@ export default function HomePage() {
   const isRunning = appState === "running";
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="min-h-screen bg-white text-charcoal overflow-x-hidden">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20 backdrop-blur-md"
-              style={{ background: "rgba(0,0,0,0.85)", borderBottom: `1px solid ${GOLD_BORDER}` }}>
+      <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md"
+              style={{ borderBottom: `1px solid ${MINT_BORDER}` }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {/* Logo ring */}
             <div className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-base"
-                 style={{ border: `1.5px solid ${GOLD}`, background: GOLD_MUTED }}>
+                 style={{ border: `1.5px solid ${MINT}`, background: MINT_MUTED }}>
               🔭
             </div>
             <div className="min-w-0">
-              <h1 className="font-black text-white text-base leading-tight tracking-tight">MarketLens AI</h1>
-              <p className="text-xs truncate" style={{ color: GOLD }}>Strategic Market Intelligence</p>
+              <h1 className="font-black text-charcoal text-base leading-tight tracking-tight">MarketLens AI</h1>
+              <p className="text-xs truncate font-semibold" style={{ color: MINT }}>Strategic Market Intelligence</p>
             </div>
           </div>
           {appState !== "idle" && (
             <button onClick={handleReset}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all shrink-0"
-              style={{ border: `1px solid ${GOLD_BORDER}`, color: GOLD, background: "transparent" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = GOLD_MUTED; }}
+              style={{ border: `1px solid ${MINT_BORDER}`, color: MINT, background: "transparent" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = MINT_MUTED; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
               מחקר חדש
             </button>
           )}
         </div>
-        {/* Gold gradient line under header */}
-        <div className="h-px w-full" style={{ background: `linear-gradient(90deg, transparent 0%, ${GOLD} 50%, transparent 100%)`, opacity: 0.3 }} />
+        {/* Mint gradient line under header */}
+        <div className="h-px w-full"
+             style={{ background: `linear-gradient(90deg, transparent 0%, ${MINT} 50%, transparent 100%)`, opacity: 0.25 }} />
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 overflow-x-hidden">
@@ -170,18 +170,18 @@ export default function HomePage() {
           <div className="text-center space-y-5 py-12 sm:py-16 fade-in-up">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase"
-                 style={{ background: GOLD_MUTED, border: `1px solid ${GOLD_BORDER}`, color: GOLD }}>
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: GOLD }} />
+                 style={{ background: MINT_MUTED, border: `1px solid ${MINT_BORDER}`, color: MINT }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: MINT }} />
               Powered by Claude Opus 4.6
             </div>
 
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-white">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-charcoal">
               ניתוח העסק שלך מול המתחרים
               <br />
-              <span className="text-gold-gradient">ב-5 דקות</span>
+              <span className="text-mint-gradient">ב-5 דקות</span>
             </h2>
 
-            <p className="text-zinc-400 text-lg max-w-xl mx-auto leading-relaxed">
+            <p className="text-gray-500 text-lg max-w-xl mx-auto leading-relaxed">
               הזן את כתובת האתר שלך — המערכת תזהה את המתחרים, תנתח את השוק, ותפיק
               דוח השוואתי עם ציון מיצוב 0–100, SWOT, ומודל פורטר
             </p>
@@ -193,13 +193,13 @@ export default function HomePage() {
           {/* ── Left panel ──────────────────────────────────────────────────── */}
           <div className="space-y-5 min-w-0">
             {/* Form card */}
-            <div className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${GOLD_BORDER}` }}>
+            <div className="rounded-2xl p-6 card">
               <ResearchForm onSubmit={handleSubmit} isLoading={isRunning} />
             </div>
 
             {/* Mini step tracker (while running) */}
             {appState !== "idle" && (
-              <div className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.07)` }}>
+              <div className="rounded-2xl p-4 card">
                 <div className="space-y-2">
                   {steps.map((step) => {
                     const isSkipped  = step.status === "completed" && step.skipped;
@@ -208,19 +208,20 @@ export default function HomePage() {
                     const isError    = step.status === "error";
                     return (
                       <div key={step.id} className="flex items-center gap-2.5 min-w-0">
-                        {/* dot */}
-                        {isSkipped  && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "rgba(255,255,255,0.15)" }} />}
-                        {isDone     && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: GOLD }} />}
-                        {isRunning2 && <div className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: GOLD }} />}
-                        {isError    && <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-red-500" />}
-                        {step.status === "pending" && <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-zinc-700" />}
+                        {isSkipped  && <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-200" />}
+                        {isDone     && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: MINT }} />}
+                        {isRunning2 && <div className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: MINT }} />}
+                        {isError    && <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-red-400" />}
+                        {step.status === "pending" && <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />}
                         <span className="text-xs font-medium truncate"
-                              style={{ color: isDone ? GOLD : isRunning2 ? "#fff" : isError ? "#f87171" : isSkipped ? "rgba(255,255,255,0.2)" : "#52525b" }}>
+                              style={{
+                                color: isDone ? MINT : isRunning2 ? "#1A1A1A" : isError ? "#f87171" : isSkipped ? "#D1D5DB" : "#9CA3AF"
+                              }}>
                           {step.nameHe}
                           {isSkipped ? " — דולג" : ""}
                         </span>
                         {isDone && (
-                          <svg className="w-3 h-3 shrink-0 mr-auto" fill="none" viewBox="0 0 24 24" stroke={GOLD} strokeWidth={3}>
+                          <svg className="w-3 h-3 shrink-0 mr-auto" fill="none" viewBox="0 0 24 24" stroke={MINT} strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
@@ -234,16 +235,16 @@ export default function HomePage() {
             {/* Steps preview (idle only) */}
             {appState === "idle" && (
               <div className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-widest text-center" style={{ color: GOLD, letterSpacing: "0.18em" }}>
+                <p className="text-xs font-bold uppercase tracking-widest text-center font-semibold"
+                   style={{ color: MINT, letterSpacing: "0.18em" }}>
                   8 שלבי AI
                 </p>
                 {ALL_STEPS.map((step) => (
-                  <div key={step.id} className="flex items-center gap-3 text-sm rounded-xl px-4 py-2.5"
-                       style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                    <span className="font-bold tabular-nums text-xs w-4 text-center shrink-0" style={{ color: GOLD }}>
+                  <div key={step.id} className="flex items-center gap-3 text-sm rounded-xl px-4 py-2.5 card">
+                    <span className="font-bold tabular-nums text-xs w-4 text-center shrink-0" style={{ color: MINT }}>
                       {step.id}
                     </span>
-                    <span className="text-zinc-400 truncate">{step.nameHe}</span>
+                    <span className="text-gray-500 truncate">{step.nameHe}</span>
                   </div>
                 ))}
               </div>
@@ -255,10 +256,10 @@ export default function HomePage() {
             <div className="min-w-0 overflow-x-hidden">
               {error && appState === "error" && (
                 <div className="rounded-2xl p-6 space-y-3"
-                     style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)" }}>
-                  <h3 className="text-red-400 font-bold flex items-center gap-2">❌ שגיאה בעיבוד</h3>
-                  <p className="text-sm text-red-400">{error}</p>
-                  <p className="text-xs text-red-600">ודא שמשתנה הסביבה ANTHROPIC_API_KEY מוגדר ותקין.</p>
+                     style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                  <h3 className="text-red-500 font-bold flex items-center gap-2">❌ שגיאה בעיבוד</h3>
+                  <p className="text-sm text-red-500">{error}</p>
+                  <p className="text-xs text-red-400">ודא שמשתנה הסביבה ANTHROPIC_API_KEY מוגדר ותקין.</p>
                 </div>
               )}
               {isRunning && !report && <ResearchRoadmap steps={steps} />}
@@ -270,8 +271,8 @@ export default function HomePage() {
 
       {/* ── Scrape warning toast ────────────────────────────────────────────── */}
       {scrapeWarning && (
-        <div className="fixed bottom-6 left-6 z-50 max-w-sm rounded-2xl px-5 py-4 shadow-2xl flex items-start gap-3 fade-in"
-             style={{ background: "rgba(10,10,10,0.95)", border: `1px solid rgba(251,191,36,0.4)`, color: "#fbbf24" }}>
+        <div className="fixed bottom-6 left-6 z-50 max-w-sm rounded-2xl px-5 py-4 shadow-xl flex items-start gap-3 fade-in card"
+             style={{ borderColor: "rgba(251,191,36,0.35)", color: "#92400E", background: "#FFFBEB" }}>
           <span className="text-lg mt-0.5 shrink-0">⚠️</span>
           <p className="text-sm font-medium flex-1 leading-snug">{scrapeWarning}</p>
           <button onClick={() => setScrapeWarning(null)} className="text-lg leading-none shrink-0 opacity-60 hover:opacity-100">×</button>
@@ -279,7 +280,8 @@ export default function HomePage() {
       )}
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="mt-20 py-6 text-center text-xs" style={{ borderTop: `1px solid rgba(255,255,255,0.05)`, color: "rgba(255,255,255,0.2)" }}>
+      <footer className="mt-20 py-6 text-center text-xs text-gray-400"
+              style={{ borderTop: `1px solid ${MINT_BORDER}` }}>
         MarketLens AI · Claude Opus 4.6 · כל הניתוחים בעברית
       </footer>
     </div>

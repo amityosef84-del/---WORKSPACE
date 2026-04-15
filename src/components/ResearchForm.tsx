@@ -17,8 +17,12 @@ const FOCUSED_OPTIONS: { id: FocusedCategory; label: string; icon: string; desc:
   { id: "content",     label: "תוכן אסטרטגי",  icon: "✍️", desc: "פרסומות, פוסטים, כותרות" },
 ];
 
-// Internal 3-way mode state
 type UiMode = "full" | "focused" | "marketing";
+
+// ─── Design tokens ─────────────────────────────────────────────────────────────
+const MINT        = "#10B981";
+const MINT_MUTED  = "rgba(16,185,129,0.08)";
+const MINT_BORDER = "rgba(16,185,129,0.22)";
 
 export default function ResearchForm({ onSubmit, isLoading }: Props) {
   const [url, setUrl]           = useState("");
@@ -40,22 +44,16 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
     } else if (uiMode === "marketing") {
       onSubmit(normalizeUrl(url), details.trim() || undefined, "focused", "marketing");
     } else {
-      // focused — requires sub-category
       if (!category) return;
       onSubmit(normalizeUrl(url), details.trim() || undefined, "focused", category);
     }
   };
 
-  const isSubmitDisabled =
-    !url.trim() || isLoading || (uiMode === "focused" && !category);
-
-  const gold        = "#D4AF37";
-  const goldMuted   = "rgba(212,175,55,0.12)";
-  const goldBorder  = "rgba(212,175,55,0.28)";
+  const isSubmitDisabled = !url.trim() || isLoading || (uiMode === "focused" && !category);
 
   const getSubmitLabel = () => {
     if (isLoading) return null;
-    if (uiMode === "marketing")           return "נתח פערים שיווקיים";
+    if (uiMode === "marketing")            return "נתח פערים שיווקיים";
     if (uiMode === "focused" && !category) return "בחר קטגוריה לניתוח";
     if (uiMode === "focused")              return `נתח: ${FOCUSED_OPTIONS.find(o => o.id === category)?.label}`;
     return "הפעל ניתוח מלא";
@@ -66,37 +64,35 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
 
       {/* URL Field */}
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-zinc-200">
+        <label className="block text-sm font-semibold text-gray-700">
           כתובת האתר שלך
           <span className="text-red-400 mr-1">*</span>
         </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="mycompany.com  /  https://www.mysite.co.il"
-            disabled={isLoading}
-            dir="ltr"
-            className="w-full bg-white/[0.04] border rounded-xl px-4 py-3 text-white text-left
-                       placeholder:text-zinc-600 focus:outline-none transition-all
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              borderColor: url ? goldBorder : "rgba(255,255,255,0.1)",
-              boxShadow: url ? `0 0 0 1px ${goldBorder}` : "none",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = goldBorder;
-              e.currentTarget.style.boxShadow = `0 0 0 1px ${goldBorder}`;
-            }}
-            onBlur={(e) => {
-              if (!url) {
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-                e.currentTarget.style.boxShadow = "none";
-              }
-            }}
-          />
-        </div>
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="mycompany.com  /  https://www.mysite.co.il"
+          disabled={isLoading}
+          dir="ltr"
+          className="w-full bg-white border rounded-xl px-4 py-3 text-gray-900 text-left
+                     placeholder:text-gray-400 focus:outline-none transition-all
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            borderColor: url ? MINT_BORDER : "#E5E7EB",
+            boxShadow: url ? `0 0 0 3px ${MINT_MUTED}` : "none",
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = MINT_BORDER;
+            e.currentTarget.style.boxShadow = `0 0 0 3px ${MINT_MUTED}`;
+          }}
+          onBlur={(e) => {
+            if (!url) {
+              e.currentTarget.style.borderColor = "#E5E7EB";
+              e.currentTarget.style.boxShadow = "none";
+            }
+          }}
+        />
 
         {/* Example chips */}
         <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -106,9 +102,9 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
               type="button"
               onClick={() => setUrl(ex)}
               disabled={isLoading}
-              className="text-xs font-mono px-2.5 py-1 rounded-lg border border-white/10
-                         text-zinc-500 hover:text-zinc-300 hover:border-white/20
-                         bg-white/[0.03] transition-all disabled:opacity-40"
+              className="text-xs font-mono px-2.5 py-1 rounded-lg border border-gray-200
+                         text-gray-400 hover:text-gray-700 hover:border-gray-300
+                         bg-gray-50 transition-all disabled:opacity-40"
             >
               {ex}
             </button>
@@ -116,31 +112,28 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
         </div>
       </div>
 
-      {/* Research Mode — 3 choices */}
+      {/* Research Mode */}
       <div className="space-y-3">
-        <p className="text-sm font-semibold text-zinc-300">סוג הניתוח</p>
+        <p className="text-sm font-semibold text-gray-700">סוג הניתוח</p>
 
-        {/* Top row: Full Research + Focused Analysis */}
+        {/* Top row: Full + Focused */}
         <div className="grid grid-cols-2 gap-2">
           {([
-            { v: "full"    as UiMode, label: "מחקר מלא",     icon: "🔬", sub: "כל 7 השלבים" },
-            { v: "focused" as UiMode, label: "ניתוח ממוקד",   icon: "🎯", sub: "קטגוריה ספציפית" },
+            { v: "full"    as UiMode, label: "מחקר מלא",    icon: "🔬", sub: "כל 7 השלבים" },
+            { v: "focused" as UiMode, label: "ניתוח ממוקד",  icon: "🎯", sub: "קטגוריה ספציפית" },
           ] as { v: UiMode; label: string; icon: string; sub: string }[]).map(({ v, label, icon, sub }) => {
             const active = uiMode === v;
             return (
               <button
                 key={v}
                 type="button"
-                onClick={() => {
-                  setUiMode(v);
-                  if (v !== "focused") setCategory(undefined);
-                }}
+                onClick={() => { setUiMode(v); if (v !== "focused") setCategory(undefined); }}
                 disabled={isLoading}
                 className="py-3 px-4 rounded-xl text-sm font-semibold border transition-all text-right"
                 style={{
-                  background: active ? goldMuted : "rgba(255,255,255,0.02)",
-                  borderColor: active ? gold : "rgba(255,255,255,0.1)",
-                  color: active ? gold : "#71717a",
+                  background: active ? MINT_MUTED : "#F9FAFB",
+                  borderColor: active ? MINT : "#E5E7EB",
+                  color: active ? MINT : "#6B7280",
                 }}
               >
                 <span className="text-base block mb-0.5">{icon}</span>
@@ -151,20 +144,16 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
           })}
         </div>
 
-        {/* Marketing Gap — full-width distinctive button */}
+        {/* Marketing Gap — full-width */}
         <button
           type="button"
           onClick={() => { setUiMode("marketing"); setCategory("marketing"); }}
           disabled={isLoading}
           className="w-full py-3 px-4 rounded-xl text-sm font-semibold border transition-all text-right"
           style={{
-            background: uiMode === "marketing"
-              ? "rgba(212,175,55,0.14)"
-              : "rgba(255,255,255,0.02)",
-            borderColor: uiMode === "marketing"
-              ? gold
-              : "rgba(212,175,55,0.2)",
-            color: uiMode === "marketing" ? gold : "#a1a1aa",
+            background: uiMode === "marketing" ? MINT_MUTED : "#F9FAFB",
+            borderColor: uiMode === "marketing" ? MINT : "rgba(16,185,129,0.2)",
+            color: uiMode === "marketing" ? MINT : "#9CA3AF",
           }}
         >
           <div className="flex items-center justify-between gap-2">
@@ -179,20 +168,14 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
             </div>
             <span
               className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0"
-              style={{
-                background: uiMode === "marketing"
-                  ? goldMuted
-                  : "rgba(212,175,55,0.08)",
-                color: gold,
-                border: `1px solid rgba(212,175,55,0.25)`,
-              }}
+              style={{ background: MINT_MUTED, color: MINT, border: `1px solid ${MINT_BORDER}` }}
             >
               ⚡ מהיר
             </span>
           </div>
         </button>
 
-        {/* Focused sub-category cards (only when focused + not marketing) */}
+        {/* Focused sub-category cards */}
         {uiMode === "focused" && (
           <div className="grid grid-cols-2 gap-2 pt-1 fade-in">
             {FOCUSED_OPTIONS.map(({ id, label, icon, desc }) => {
@@ -205,9 +188,9 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
                   disabled={isLoading}
                   className="py-3 px-2 rounded-xl text-xs font-semibold border transition-all text-center"
                   style={{
-                    background: active ? goldMuted : "rgba(255,255,255,0.02)",
-                    borderColor: active ? gold : "rgba(255,255,255,0.08)",
-                    color: active ? gold : "#52525b",
+                    background: active ? MINT_MUTED : "#F9FAFB",
+                    borderColor: active ? MINT : "#E5E7EB",
+                    color: active ? MINT : "#9CA3AF",
                   }}
                 >
                   <span className="text-lg block mb-1">{icon}</span>
@@ -224,9 +207,9 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
 
       {/* Additional Details */}
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-zinc-300">
+        <label className="block text-sm font-semibold text-gray-700">
           פרטים נוספים
-          <span className="text-zinc-600 font-normal text-xs mr-2">(אופציונלי)</span>
+          <span className="text-gray-400 font-normal text-xs mr-2">(אופציונלי)</span>
         </label>
         <textarea
           value={details}
@@ -234,12 +217,18 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
           placeholder="תחום עיסוק, שוק יעד, מיקוד גיאוגרפי..."
           disabled={isLoading}
           rows={2}
-          className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-white
-                     placeholder:text-zinc-600 focus:outline-none resize-none transition-all
+          className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900
+                     placeholder:text-gray-400 focus:outline-none resize-none transition-all
                      disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           style={{ direction: "rtl" }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = goldBorder; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = MINT_BORDER;
+            e.currentTarget.style.boxShadow = `0 0 0 3px ${MINT_MUTED}`;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = "#E5E7EB";
+            e.currentTarget.style.boxShadow = "none";
+          }}
         />
       </div>
 
@@ -251,16 +240,16 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
                    flex items-center justify-center gap-3 text-sm relative overflow-hidden"
         style={{
           background: isSubmitDisabled
-            ? "rgba(255,255,255,0.06)"
-            : `linear-gradient(135deg, ${gold} 0%, #C5A028 100%)`,
-          color: isSubmitDisabled ? "#52525b" : "#000000",
+            ? "#F3F4F6"
+            : `linear-gradient(135deg, ${MINT} 0%, #059669 100%)`,
+          color: isSubmitDisabled ? "#9CA3AF" : "#FFFFFF",
           cursor: isSubmitDisabled ? "not-allowed" : "pointer",
-          boxShadow: !isSubmitDisabled ? "0 4px 24px rgba(212,175,55,0.3)" : "none",
+          boxShadow: !isSubmitDisabled ? "0 4px 24px rgba(16,185,129,0.3)" : "none",
         }}
       >
         {isLoading ? (
           <>
-            <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             <span>מעבד מחקר...</span>
           </>
         ) : (
@@ -275,7 +264,7 @@ export default function ResearchForm({ onSubmit, isLoading }: Props) {
       </button>
 
       {uiMode === "focused" && !category && !isLoading && (
-        <p className="text-xs text-center" style={{ color: "rgba(212,175,55,0.6)" }}>
+        <p className="text-xs text-center" style={{ color: MINT }}>
           בחר קטגוריה לניתוח ממוקד
         </p>
       )}

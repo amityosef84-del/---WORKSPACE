@@ -1,26 +1,28 @@
-/* Premium Hebrew + Latin — Heebo: geometric, modern, excellent RTL */
-@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
+/* Clean Tech Mint — Assistant: excellent Hebrew/Latin rendering */
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&display=swap');
 
 @import "tailwindcss";
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────────── */
 :root {
-  --gold:         #D4AF37;
-  --gold-light:   #E8C84A;
-  --gold-dark:    #C5A028;
-  --gold-muted:   rgba(212, 175, 55, 0.10);
-  --gold-border:  rgba(212, 175, 55, 0.22);
-  --glass:        rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.07);
-  --surface:      rgba(255, 255, 255, 0.04);
-  --surface-2:    rgba(255, 255, 255, 0.07);
+  --mint:         #10B981;
+  --mint-light:   #34D399;
+  --mint-dark:    #059669;
+  --mint-muted:   rgba(16, 185, 129, 0.08);
+  --mint-border:  rgba(16, 185, 129, 0.18);
+  --surface:      rgba(16, 185, 129, 0.04);
+  --surface-2:    rgba(16, 185, 129, 0.08);
+  --charcoal:     #1A1A1A;
+  --charcoal-2:   #374151;
+  --text-dim:     #9CA3AF;
 }
 
 /* Expose as Tailwind design tokens */
 @theme inline {
-  --color-gold:       #D4AF37;
-  --color-gold-light: #E8C84A;
-  --color-gold-dark:  #C5A028;
+  --color-mint:       #10B981;
+  --color-mint-light: #34D399;
+  --color-mint-dark:  #059669;
+  --color-charcoal:   #1A1A1A;
 }
 
 /* ─── Reset & Base ───────────────────────────────────────────────────────────── */
@@ -35,9 +37,9 @@ html {
 }
 
 body {
-  background: #000000;
-  color: #ffffff;
-  font-family: 'Heebo', 'Arial Hebrew', Arial, sans-serif;
+  background: #FFFFFF;
+  color: #1A1A1A;
+  font-family: 'Assistant', 'Arial Hebrew', Arial, sans-serif;
   overflow-x: hidden;
   direction: rtl;
   -webkit-font-smoothing: antialiased;
@@ -52,38 +54,35 @@ p, li {
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar          { width: 4px; }
-::-webkit-scrollbar-track    { background: #050505; }
-::-webkit-scrollbar-thumb    { background: rgba(212,175,55,0.35); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
+::-webkit-scrollbar-track    { background: #F9FAFB; }
+::-webkit-scrollbar-thumb    { background: rgba(16,185,129,0.35); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #10B981; }
 
-/* ─── Glass utilities ────────────────────────────────────────────────────────── */
-.glass {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+/* ─── Utilities ──────────────────────────────────────────────────────────────── */
+.card {
+  background: #FFFFFF;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  box-shadow: 0 1px 6px rgba(16, 185, 129, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.glass-gold {
-  background: var(--gold-muted);
-  border: 1px solid var(--gold-border);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+.card-surface {
+  background: #F0FDF9;
+  border: 1px solid rgba(16, 185, 129, 0.15);
 }
 
 /* ─── Animations ─────────────────────────────────────────────────────────────── */
-@keyframes gold-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); }
-  50%       { box-shadow: 0 0 24px 4px rgba(212,175,55,0.18); }
+@keyframes mint-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  50%       { box-shadow: 0 0 24px 4px rgba(16,185,129,0.15); }
 }
-.gold-pulse { animation: gold-pulse 3s ease-in-out infinite; }
+.mint-pulse { animation: mint-pulse 3s ease-in-out infinite; }
 
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
 .shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.07) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(16,185,129,0.06) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 2.5s infinite;
 }
@@ -100,19 +99,25 @@ p, li {
 }
 .fade-in { animation: fade-in 0.4s ease-out both; }
 
-/* ─── Gold gradient text ─────────────────────────────────────────────────────── */
-.text-gold-gradient {
-  background: linear-gradient(135deg, #E8C84A 0%, #D4AF37 50%, #C5A028 100%);
+/* ─── Mint gradient text ──────────────────────────────────────────────────────── */
+.text-mint-gradient {
+  background: linear-gradient(135deg, #34D399 0%, #10B981 50%, #059669 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* ─── Accordion panel smooth height ─────────────────────────────────────────── */
+.accordion-content {
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.3s ease;
 }
 
 /* ─── Input autofill override ────────────────────────────────────────────────── */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #0a0a0a inset !important;
-  -webkit-text-fill-color: #ffffff !important;
-  caret-color: #D4AF37;
+  -webkit-box-shadow: 0 0 0 1000px #F0FDF9 inset !important;
+  -webkit-text-fill-color: #1A1A1A !important;
+  caret-color: #10B981;
 }

@@ -126,11 +126,11 @@ const EFFECTIVE_TOTAL_SECONDS =
   STAGES[7].estimatedSeconds;
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const GOLD        = "#D4AF37";
-const GOLD_MUTED  = "rgba(212,175,55,0.12)";
-const GOLD_BORDER = "rgba(212,175,55,0.22)";
-const DIM         = "rgba(255,255,255,0.08)";
-const DIM_TEXT    = "rgba(255,255,255,0.25)";
+const MINT        = "#10B981";
+const MINT_MUTED  = "rgba(16,185,129,0.08)";
+const MINT_BORDER = "rgba(16,185,129,0.18)";
+const DIM         = "rgba(16,185,129,0.12)";
+const DIM_TEXT    = "#9CA3AF";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ function StatusDot({ status, skipped }: { status: PipelineStep["status"]; skippe
   if (skipped) {
     return (
       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-           style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${DIM}` }}>
+           style={{ background: "#F9FAFB", border: `1px solid #E5E7EB` }}>
         <span style={{ color: DIM_TEXT, fontSize: "12px" }}>—</span>
       </div>
     );
@@ -161,8 +161,8 @@ function StatusDot({ status, skipped }: { status: PipelineStep["status"]; skippe
   if (status === "completed") {
     return (
       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-           style={{ background: GOLD_MUTED, border: `1px solid ${GOLD_BORDER}` }}>
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke={GOLD} strokeWidth={2.5}>
+           style={{ background: MINT_MUTED, border: `1px solid ${MINT_BORDER}` }}>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke={MINT} strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       </div>
@@ -171,26 +171,26 @@ function StatusDot({ status, skipped }: { status: PipelineStep["status"]; skippe
   if (status === "running") {
     return (
       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 relative"
-           style={{ border: `1.5px solid ${GOLD}`, background: GOLD_MUTED }}>
+           style={{ border: `1.5px solid ${MINT}`, background: MINT_MUTED }}>
         <div className="absolute inset-0 rounded-full animate-ping"
-             style={{ border: `1px solid ${GOLD}`, opacity: 0.3 }} />
+             style={{ border: `1px solid ${MINT}`, opacity: 0.25 }} />
         <div className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
-             style={{ borderColor: `${GOLD} transparent transparent transparent` }} />
+             style={{ borderColor: `${MINT} transparent transparent transparent` }} />
       </div>
     );
   }
   if (status === "error") {
     return (
       <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-           style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)" }}>
+           style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)" }}>
         <span className="text-red-400 font-bold text-xs">!</span>
       </div>
     );
   }
   return (
     <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-         style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${DIM}` }}>
-      <div className="w-1.5 h-1.5 rounded-full" style={{ background: DIM_TEXT }} />
+         style={{ background: "#F9FAFB", border: `1px solid #E5E7EB` }}>
+      <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
     </div>
   );
 }
@@ -207,11 +207,11 @@ function MicroTaskList({ tasks, activeIdx, allDone }: {
         const active  = !allDone && i === activeIdx;
         const pending = !allDone && i > activeIdx;
         return (
-          <li key={i} className="flex items-center gap-2 text-xs" style={{ opacity: pending ? 0.3 : 1 }}>
-            {done   && <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke={GOLD} strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
-            {active && <div className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin shrink-0" style={{ borderColor: `${GOLD} transparent transparent transparent` }}/>}
-            {pending && <div className="w-3 h-3 rounded-full border shrink-0" style={{ borderColor: DIM }}/>}
-            <span style={{ color: done ? GOLD : active ? "#fff" : DIM_TEXT }}>{task.label}</span>
+          <li key={i} className="flex items-center gap-2 text-xs" style={{ opacity: pending ? 0.35 : 1 }}>
+            {done   && <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke={MINT} strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
+            {active && <div className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin shrink-0" style={{ borderColor: `${MINT} transparent transparent transparent` }}/>}
+            {pending && <div className="w-3 h-3 rounded-full border shrink-0" style={{ borderColor: "#E5E7EB" }}/>}
+            <span style={{ color: done ? MINT : active ? "#1A1A1A" : DIM_TEXT }}>{task.label}</span>
           </li>
         );
       })}
@@ -230,15 +230,14 @@ function StageRow({ config, step, isLast, now }: {
   const isPartial  = isDone && step.partial && !isSkipped;
   const isPending  = step.status === "pending";
 
-  const elapsedSec = isRunning && step.startedAt
-    ? Math.floor((now - step.startedAt) / 1000) : 0;
+  const elapsedSec   = isRunning && step.startedAt ? Math.floor((now - step.startedAt) / 1000) : 0;
   const remainingSec = Math.max(0, config.estimatedSeconds - elapsedSec);
   const isOverrun    = isRunning && elapsedSec > config.estimatedSeconds;
   const fillPct      = isDone ? 100 : isRunning
     ? Math.min(85, Math.round((elapsedSec / config.estimatedSeconds) * 100)) : 0;
   const tookSec      = isDone && !isSkipped && step.startedAt && step.completedAt
     ? Math.round((step.completedAt - step.startedAt) / 1000) : null;
-  const microIdx = activeMicroIdx(elapsedSec, config.estimatedSeconds, config.microTasks.length);
+  const microIdx     = activeMicroIdx(elapsedSec, config.estimatedSeconds, config.microTasks.length);
 
   return (
     <div className="flex gap-3">
@@ -247,13 +246,12 @@ function StageRow({ config, step, isLast, now }: {
         <StatusDot status={step.status} skipped={step.skipped} />
         {!isLast && (
           <div className="w-px flex-1 mt-2 min-h-[1.5rem] transition-colors duration-700"
-               style={{ background: isDone && !isSkipped ? GOLD_BORDER : DIM }} />
+               style={{ background: isDone && !isSkipped ? MINT_BORDER : "#E5E7EB" }} />
         )}
       </div>
 
       {/* Content */}
       <div className={`flex-1 min-w-0 ${isLast ? "pb-0" : "pb-5"}`}>
-        {/* Title row */}
         <div className="flex items-start justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-base leading-none shrink-0">{config.icon}</span>
@@ -262,28 +260,26 @@ function StageRow({ config, step, isLast, now }: {
                 <p className="text-sm font-bold leading-snug transition-colors duration-300 truncate"
                    style={{
                      color: isSkipped ? DIM_TEXT
-                          : isDone    ? GOLD
-                          : isRunning ? "#fff"
+                          : isDone    ? MINT
+                          : isRunning ? "#1A1A1A"
                           : DIM_TEXT,
                    }}>
                   {config.title}
                 </p>
                 {isPartial && (
                   <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full shrink-0"
-                        style={{ background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)", color: "#f59e0b", fontSize: "10px" }}>
+                        style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", color: "#f59e0b", fontSize: "10px" }}>
                     ⚡ חלקי
                   </span>
                 )}
                 {isSkipped && (
                   <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full shrink-0"
-                        style={{ background: DIM, border: `1px solid ${DIM}`, color: DIM_TEXT, fontSize: "10px" }}>
+                        style={{ background: "#F3F4F6", border: "1px solid #E5E7EB", color: DIM_TEXT, fontSize: "10px" }}>
                     דולג
                   </span>
                 )}
               </div>
-              <p className="text-xs truncate" style={{ color: DIM_TEXT }}>
-                {config.subtitle}
-              </p>
+              <p className="text-xs truncate" style={{ color: DIM_TEXT }}>{config.subtitle}</p>
             </div>
           </div>
 
@@ -293,17 +289,15 @@ function StageRow({ config, step, isLast, now }: {
               <span className="text-xs" style={{ color: DIM_TEXT }}>~{formatSeconds(config.estimatedSeconds)}</span>
             )}
             {isRunning && !isOverrun && (
-              <span className="text-xs font-medium tabular-nums" style={{ color: GOLD }}>
+              <span className="text-xs font-medium tabular-nums" style={{ color: MINT }}>
                 {remainingSec > 0 ? `${remainingSec} שנ׳` : "מסיים..."}
               </span>
             )}
             {isRunning && isOverrun && (
-              <span className="text-xs font-medium tabular-nums animate-pulse" style={{ color: "#f59e0b" }}>
-                כמעט...
-              </span>
+              <span className="text-xs font-medium tabular-nums animate-pulse text-amber-500">כמעט...</span>
             )}
             {isDone && !isSkipped && tookSec !== null && (
-              <span className="text-xs tabular-nums" style={{ color: isPartial ? "#f59e0b" : GOLD }}>
+              <span className="text-xs tabular-nums" style={{ color: isPartial ? "#f59e0b" : MINT }}>
                 {tookSec} שנ׳
               </span>
             )}
@@ -313,21 +307,20 @@ function StageRow({ config, step, isLast, now }: {
         {/* Progress fill bar */}
         {(isRunning || (isDone && !isSkipped)) && (
           <div className="mt-1.5 pr-6">
-            <div className="h-px rounded-full overflow-hidden" style={{ background: DIM }}>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: DIM }}>
               <div className="h-full rounded-full transition-all ease-linear"
                    style={{
                      width: `${fillPct}%`,
-                     background: isDone ? GOLD : GOLD,
+                     background: `linear-gradient(90deg, ${MINT} 0%, #34D399 100%)`,
                      transitionDuration: isDone ? "300ms" : "1000ms",
-                     opacity: isDone ? 0.6 : 0.8,
                    }} />
             </div>
           </div>
         )}
 
-        {/* Live sub-step progress (e.g. Porter force completions) */}
+        {/* Live sub-step progress */}
         {isRunning && step.progressMessage && (
-          <p className="text-xs pr-6 tabular-nums" style={{ color: GOLD }}>
+          <p className="text-xs pr-6 tabular-nums mt-1" style={{ color: MINT }}>
             {step.progressMessage}
           </p>
         )}
@@ -343,7 +336,7 @@ function StageRow({ config, step, isLast, now }: {
           <p className="text-xs mt-1 pr-6" style={{ color: DIM_TEXT }}>ממתין לשלב הקודם</p>
         )}
         {isPartial && (
-          <p className="text-xs mt-1 pr-6" style={{ color: "#f59e0b" }}>הצגת תוצאה חלקית</p>
+          <p className="text-xs mt-1 pr-6 text-amber-500">הצגת תוצאה חלקית</p>
         )}
         {step.status === "error" && step.error && (
           <p className="text-xs mt-1 pr-6 text-red-400 truncate">{step.error}</p>
@@ -364,7 +357,7 @@ function ETABanner({ steps, now }: { steps: PipelineStep[]; now: number }) {
   steps.forEach((step, i) => {
     const cfg = STAGES[i];
     if (!cfg || step.skipped) return;
-    if (step.id === 2 || step.id === 3) return; // handled separately
+    if (step.id === 2 || step.id === 3) return;
     if (step.status === "pending") {
       remainingSec += cfg.estimatedSeconds;
     } else if (step.status === "running" && step.startedAt) {
@@ -393,10 +386,10 @@ function ETABanner({ steps, now }: { steps: PipelineStep[]; now: number }) {
     return (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: GOLD }} />
-          <span className="text-sm font-bold text-white">המחקר הושלם</span>
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: MINT }} />
+          <span className="text-sm font-bold text-gray-900">המחקר הושלם</span>
         </div>
-        <span className="text-xs tabular-nums" style={{ color: GOLD }}>
+        <span className="text-xs tabular-nums" style={{ color: MINT }}>
           סה״כ {formatSeconds(totalElapsed)}
         </span>
       </div>
@@ -406,20 +399,18 @@ function ETABanner({ steps, now }: { steps: PipelineStep[]; now: number }) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: GOLD }} />
-        <span className="text-sm font-bold text-white">מפת מהלך המחקר</span>
+        <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: MINT }} />
+        <span className="text-sm font-bold text-gray-900">מפת מהלך המחקר</span>
       </div>
       <div className="text-left">
         {remainingSec > 0 ? (
-          <span className="text-xs font-medium tabular-nums text-zinc-400">
+          <span className="text-xs font-medium tabular-nums text-gray-500">
             ~{" "}
-            <span style={{ color: GOLD }}>{formatSeconds(remainingSec)}</span>
+            <span style={{ color: MINT }}>{formatSeconds(remainingSec)}</span>
             {" "}נותרו
           </span>
         ) : (
-          <span className="text-xs tabular-nums" style={{ color: "#f59e0b" }}>
-            {totalElapsed} שנ׳ עברו
-          </span>
+          <span className="text-xs tabular-nums text-amber-500">{totalElapsed} שנ׳ עברו</span>
         )}
       </div>
     </div>
@@ -434,13 +425,13 @@ function ProgressBar({ steps }: { steps: PipelineStep[] }) {
   const pct       = Math.round((completed / Math.max(visible.length, 1)) * 100);
   return (
     <div className="space-y-1 mt-3">
-      <div className="flex justify-between text-xs" style={{ color: DIM_TEXT }}>
+      <div className="flex justify-between text-xs text-gray-400">
         <span>{completed}/{visible.length} שלבים</span>
         <span>{pct}%</span>
       </div>
-      <div className="h-px rounded-full overflow-hidden" style={{ background: DIM }}>
+      <div className="h-1.5 rounded-full overflow-hidden bg-gray-100">
         <div className="h-full rounded-full transition-all duration-700 ease-out"
-             style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${GOLD} 0%, #E8C84A 100%)` }} />
+             style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${MINT} 0%, #34D399 100%)` }} />
       </div>
     </div>
   );
@@ -461,14 +452,15 @@ export default function ResearchRoadmap({ steps }: Props) {
     return () => clearInterval(id);
   }, [hasRunning]);
 
+  // suppress unused import warning
+  void EFFECTIVE_TOTAL_SECONDS;
+
   if (!isAnyActive) return null;
 
   return (
-    <div className="rounded-2xl overflow-hidden fade-in"
-         style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${GOLD_BORDER}` }}>
+    <div className="rounded-2xl overflow-hidden fade-in card">
       {/* Header */}
-      <div className="px-5 pt-5 pb-4 space-y-0"
-           style={{ borderBottom: `1px solid rgba(212,175,55,0.12)` }}>
+      <div className="px-5 pt-5 pb-4" style={{ borderBottom: `1px solid ${MINT_BORDER}` }}>
         <ETABanner steps={steps} now={now} />
         <ProgressBar steps={steps} />
       </div>
