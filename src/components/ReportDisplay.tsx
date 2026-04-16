@@ -31,6 +31,23 @@ export default function ReportDisplay({ report }: Props) {
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
 
+      {/* ── Completion banner — appears at top the moment pipeline finishes ── */}
+      {allComplete && (
+        <div className="rounded-2xl px-5 py-4 fade-in-up flex items-center justify-between flex-wrap gap-4"
+             style={{ background: `linear-gradient(135deg, ${MM} 0%, rgba(16,185,129,0.14) 100%)`,
+                      border: `1.5px solid ${MB}`,
+                      boxShadow: "0 4px 24px rgba(16,185,129,0.12)" }}>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">✅</span>
+            <div>
+              <p className="font-bold text-gray-900 text-sm leading-snug">הניתוח הושלם בהצלחה!</p>
+              <p className="text-xs text-gray-500 mt-0.5">הדוח המלא מוכן — ניתן להורדה כ-PDF</p>
+            </div>
+          </div>
+          <DownloadPdfButton targetRef={reportRef} filename={pdfFilename} />
+        </div>
+      )}
+
       {/* ── Header card ─────────────────────────────────────────────────────── */}
       <div className="rounded-2xl p-5 fade-in-up"
            style={{ background: "#fff", border: `1px solid ${MB}`, boxShadow: "0 1px 8px rgba(16,185,129,0.07)" }}>

@@ -689,11 +689,10 @@ ${slimCtx}
   `.trim();
 }
 
-// ─── Step 7 (parallel B): landing page headline + strategic angle ─────────────
+// ─── Step 7 (parallel B1): landing page headline only ────────────────────────
 
 export const STEP7_LANDING_SYSTEM = `
-אתה Copywriter בכיר. צור כותרת לדף נחיתה + זווית תחרותית מרכזית (Winning Angle).
-הכותרת: תגרום לגולש לומר "זה בדיוק מה שחיפשתי". הזווית: משפט אחד חד שמגדיר את הבידול.
+אתה Copywriter בכיר. צור כותרת לדף נחיתה בלבד — כותרת שתגרום לגולש לומר "זה בדיוק מה שחיפשתי".
 
 ${HEBREW_MANDATE}
 
@@ -703,8 +702,7 @@ ${HEBREW_MANDATE}
     "main": "כותרת ראשית עד 60 תווים",
     "sub": "תת-כותרת עד 100 תווים",
     "cta": "קריאה לפעולה עד 25 תווים"
-  },
-  "strategicAngle": "משפט אחד — הזווית התחרותית המרכזית שהעסק צריך לאמץ"
+  }
 }
 `.trim();
 
@@ -716,8 +714,33 @@ export function step7LandingPrompt(userUrl: string, slimCtx: string, biggestOppo
 --- ניתוח שוק תמציתי ---
 ${slimCtx}
 
-צור כותרת לדף נחיתה שתתפוס את ההזדמנות הזאת, ומשפט זווית תחרותי אחד.
-כל הפלט בעברית.
+צור כותרת לדף נחיתה שתתפוס את ההזדמנות הזאת. כל הפלט בעברית.
+  `.trim();
+}
+
+// ─── Step 7 (parallel B2): strategic angle (winning competitive angle) ────────
+
+export const STEP7_ANGLE_SYSTEM = `
+אתה אסטרטג מותגים בכיר. נסח משפט אחד בלבד — הזווית התחרותית המרכזית (Winning Competitive Angle) של העסק.
+המשפט חייב להיות קצר, חד, וממוקד בבידול האמיתי של העסק מול המתחרים.
+
+${HEBREW_MANDATE}
+
+החזר JSON בלבד ללא markdown:
+{
+  "strategicAngle": "משפט אחד — הזווית התחרותית המרכזית שהעסק צריך לאמץ"
+}
+`.trim();
+
+export function step7AnglePrompt(userUrl: string, slimCtx: string, biggestOpportunity: string): string {
+  return `
+אתר העסק: **${userUrl}**
+ההזדמנות הגדולה ביותר: **${biggestOpportunity}**
+
+--- ניתוח שוק תמציתי ---
+${slimCtx}
+
+נסח משפט אחד קצר שמגדיר את הזווית התחרותית הייחודית של העסק. כל הפלט בעברית.
   `.trim();
 }
 

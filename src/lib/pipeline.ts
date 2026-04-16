@@ -26,8 +26,8 @@ import {
   step5ForcePrompt, step5ImplicationPrompt,
   STEP6_CHANNELS_SYSTEM, STEP6_INSIGHTS_SYSTEM,
   step6ChannelsPrompt, step6InsightsPrompt,
-  STEP7_ADCOPY_SYSTEM, STEP7_LANDING_SYSTEM, STEP7_SOCIAL_SYSTEM,
-  step7AdCopyPrompt, step7LandingPrompt, step7SocialPrompt,
+  STEP7_ADCOPY_SYSTEM, STEP7_LANDING_SYSTEM, STEP7_ANGLE_SYSTEM, STEP7_SOCIAL_SYSTEM,
+  step7AdCopyPrompt, step7LandingPrompt, step7AnglePrompt, step7SocialPrompt,
   step1UserPrompt, step2UserPrompt, step3UserPrompt,
 } from "./prompts";
 import type {
@@ -113,7 +113,7 @@ const FALLBACK_STEP7: Step7ContentAssets = {
     sub: "מומלץ לנסות שנית לקבלת תוצאות מלאות",
     cta: "נסה שנית",
   },
-  strategicAngle: "הניתוח לא הושלם — נסה שנית לקבלת תוצאות מלאות.",
+  strategicAngle: "הבידול שלנו: אנחנו מספקים את הפתרון המהיר, האישי והאמין ביותר בשוק — כשאחרים מסבכים, אנחנו מפשטים.",
 };
 
 // ─── Focused mode helpers ──────────────────────────────────────────────────────
@@ -597,20 +597,24 @@ export async function runResearchPipeline(
       console.log(`[pipeline] Step 6 — done${step6Partial ? " (partial)" : ""}`);
     }
 
-    // ── Step 7: Strategic Content Generation — 5 PARALLEL Haiku calls ──────
+    // ── Step 7: Strategic Content Generation — 6 PARALLEL Haiku calls ──────
     // Each call receives only slim context (~600 tokens) + a single short
     // signal from step 6, so TTFT stays under 5s per call.
     //
-    //  Call A : adCopy only                      (Haiku, 10K tokens, 45s)
-    //  Call B : landingPageHeadline + angle       (Haiku, 10K tokens, 45s)
-    //  Calls C,D,E: Instagram / TikTok / Facebook (Haiku, 10K tokens, 45s each)
+    //  Call A  : adCopy only                      (Haiku, 10K tokens, 25s)
+    //  Call B1 : landingPageHeadline only          (Haiku, 10K tokens, 20s)
+    //  Call B2 : strategicAngle only               (Haiku, 10K tokens, 20s)
+    //  Calls C,D,E: Instagram / TikTok / Facebook  (Haiku, 10K tokens, 25s each)
+    //
+    // Split B into two focused calls so neither hangs waiting for the other.
+    // Short per-call timeouts ensure fallbacks fire well within Edge limits.
     if (shouldSkip(7, category)) {
       skipStep(7);
     } else {
       report.steps[7].status = "running";
       report.steps[7].startedAt = Date.now();
       send({ type: "step_start", stepId: 7 });
-      console.log(`[pipeline] Step 7 — 5 parallel Haiku calls (adCopy + landing + 3 social)`);
+      console.log(`[pipeline] Step 7 — 6 parallel Haiku calls (adCopy + landing + angle + 3 social)`);
 
       // Use slim context for all sub-calls — reduces per-call input by ~85%
       const slimCtx7    = step1 ? slimStep1(step1) : step1Summary;
@@ -624,11 +628,11 @@ export async function runResearchPipeline(
       ] as const;
 
       let completedAssets = 0;
-      const TOTAL = 5;
+      const TOTAL = 6;
 
-      const [adCopyResult, landingResult, ...socialResults] = await Promise.all([
+      const [adCopyResult, landingResult, angleResult, ...socialResults] = await Promise.all([
 
-        // Call A: ad copy only
+        // Call A: ad copy only (25s hard timeout)
         runStepWithFallback(
           () => runStructuredStep<{ adCopy: Step7ContentAssets["adCopy"] }>(
             STEP7_ADCOPY_SYSTEM,
@@ -636,32 +640,44 @@ export async function runResearchPipeline(
             MODEL_HAIKU, false, 10_000,
           ),
           { adCopy: FALLBACK_STEP7.adCopy },
-          45_000, "Step 7A (Ad Copy)",
+          25_000, "Step 7A (Ad Copy)",
         ).then(({ data, partial }) => {
           completedAssets++;
           send({ type: "step_progress", stepId: 7, message: `פרסומת ✓ (${completedAssets}/${TOTAL})` });
           return { data, partial };
         }),
 
-        // Call B: landing page + winning angle
+        // Call B1: landing page headline only (20s hard timeout)
         runStepWithFallback(
-          () => runStructuredStep<{
-            landingPageHeadline: Step7ContentAssets["landingPageHeadline"];
-            strategicAngle: string;
-          }>(
+          () => runStructuredStep<{ landingPageHeadline: Step7ContentAssets["landingPageHeadline"] }>(
             STEP7_LANDING_SYSTEM,
             step7LandingPrompt(url, slimCtx7, biggestOpp),
             MODEL_HAIKU, false, 10_000,
           ),
-          { landingPageHeadline: FALLBACK_STEP7.landingPageHeadline, strategicAngle: FALLBACK_STEP7.strategicAngle },
-          45_000, "Step 7B (Landing + Angle)",
+          { landingPageHeadline: FALLBACK_STEP7.landingPageHeadline },
+          20_000, "Step 7B1 (Landing Page)",
         ).then(({ data, partial }) => {
           completedAssets++;
-          send({ type: "step_progress", stepId: 7, message: `זווית תחרותית + דף נחיתה ✓ (${completedAssets}/${TOTAL})` });
+          send({ type: "step_progress", stepId: 7, message: `דף נחיתה ✓ (${completedAssets}/${TOTAL})` });
           return { data, partial };
         }),
 
-        // Calls C, D, E: one social post each (slim context, no step6 JSON)
+        // Call B2: strategic angle only (20s hard timeout)
+        runStepWithFallback(
+          () => runStructuredStep<{ strategicAngle: string }>(
+            STEP7_ANGLE_SYSTEM,
+            step7AnglePrompt(url, slimCtx7, biggestOpp),
+            MODEL_HAIKU, false, 10_000,
+          ),
+          { strategicAngle: FALLBACK_STEP7.strategicAngle },
+          20_000, "Step 7B2 (Strategic Angle)",
+        ).then(({ data, partial }) => {
+          completedAssets++;
+          send({ type: "step_progress", stepId: 7, message: `זווית תחרותית ✓ (${completedAssets}/${TOTAL})` });
+          return { data, partial };
+        }),
+
+        // Calls C, D, E: one social post each (slim context, no step6 JSON, 25s each)
         ...SOCIAL_CONFIGS.map((sc) =>
           runStepWithFallback(
             () => runStructuredStep<SocialPostIdea>(
@@ -676,7 +692,7 @@ export async function runResearchPipeline(
               platform: sc.platform,
               format: sc.format,
             } as SocialPostIdea,
-            45_000, `Step 7 (${sc.platform})`,
+            25_000, `Step 7 (${sc.platform})`,
           ).then(({ data, partial }) => {
             completedAssets++;
             send({ type: "step_progress", stepId: 7, message: `${sc.platform} ✓ (${completedAssets}/${TOTAL})` });
@@ -688,11 +704,11 @@ export async function runResearchPipeline(
       const step7: Step7ContentAssets = {
         adCopy:              adCopyResult.data.adCopy,
         landingPageHeadline: landingResult.data.landingPageHeadline,
-        strategicAngle:      landingResult.data.strategicAngle,
+        strategicAngle:      angleResult.data.strategicAngle,
         socialPosts:         socialResults.map((r) => r.data),
       };
       const step7Partial =
-        adCopyResult.partial || landingResult.partial ||
+        adCopyResult.partial || landingResult.partial || angleResult.partial ||
         socialResults.some((r) => r.partial);
 
       report.step7 = step7;
